@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>acting-fee-parent</artifactId>
+        <groupId>com.unicom.acting.fee</groupId>
+        <version>${revision}</version>
+        <relativePath>../acting-fee-parent</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>acting-fee-writeoff</artifactId>
+    <name>acting-fee-writeoff</name>
+    <description>cBSS系统账务中心费用类业务公共writeoff组件</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.unicom.skyark.component</groupId>
+            <artifactId>skyark-component-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.unicom.acting.fee</groupId>
+            <artifactId>acting-fee-dao</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.unicom.acting.fee</groupId>
+            <artifactId>acting-fee-calc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.unicom.acts.pay</groupId>
+            <artifactId>acts-pay-dao</artifactId>
+        </dependency>
+    </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <artifactId>acts-pay-dependencies</artifactId>
+                <groupId>com.unicom.acts.pay</groupId>
+                <version>${acts-pay.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+</project>
