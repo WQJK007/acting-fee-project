@@ -1,0 +1,21 @@
+spring:
+  profiles:
+    active: dev
+  application:
+    name: acting_fee_test
+  mvc:
+    favicon:
+      enabled: false
+
+logging:
+  config: classpath:logback-act.xml
+  
+info:
+  app:
+    title: acting_fee_test
+    description: 账务费用测试工程
+    version: 1.0-SNAPSHOT
+
+rest:
+  invoke:
+    enable: true

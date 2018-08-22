@@ -7,7 +7,7 @@ import com.unicom.acting.fee.domain.CommPara;
  * 帐务常用参数公共操作，主要包括以下数据表
  * TD_B_COMMPARA,TD_B_EPARCHY,TD_S_NETCODE
  *
- * @author Administrators
+ * @author wangkh
  */
 public interface CommParaFeeService extends IBaseService {
     /**

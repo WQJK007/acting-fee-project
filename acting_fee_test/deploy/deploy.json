@@ -1,0 +1,12 @@
+{
+  "description": {
+    "service_name": "账务中心dao层方法测试",
+    "maintainer_group": "济院-账管",
+    "maintainer_name": "王科恒",
+    "maintainer_telephone": "18615525057"
+  },
+  "env": {
+  },
+  "labels": {
+  }
+}

@@ -1,17 +1,17 @@
 package com.unicom.acting.fee.owefee.service.impl;
 
+import com.unicom.acting.fee.domain.FeeAccountDeposit;
+import com.unicom.acting.fee.writeoff.domain.FeeCommInfoIn;
+import com.unicom.acting.fee.writeoff.domain.TradeCommInfoOut;
 import com.unicom.skyark.component.common.constants.SysTypes;
 import com.unicom.skyark.component.exception.SkyArkException;
+import com.unicom.skyark.component.jdbc.DbTypes;
 import com.unicom.skyark.component.util.StringUtil;
-import com.unicom.acting.fee.calc.domain.TradeCommInfo;
 import com.unicom.acting.fee.calc.service.CalculateService;
 import com.unicom.acting.fee.domain.*;
 import com.unicom.acting.fee.owefee.service.OweFeeService;
-import com.unicom.acting.fee.writeoff.service.PayLogFeeService;
-import com.unicom.acting.fee.writeoff.service.WriteOffFeeService;
-import com.unicom.acts.pay.domain.Account;
-import com.unicom.acts.pay.domain.AccountDeposit;
-import com.unicom.acts.pay.domain.AcctPaymentCycle;
+import com.unicom.acting.fee.writeoff.service.FeePayLogService;
+import com.unicom.acting.fee.writeoff.service.FeeCommService;
 import com.unicom.skyark.component.util.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,40 +32,40 @@ import java.util.Map;
 public class OweFeeServiceImpl implements OweFeeService {
     private static final Logger logger = LoggerFactory.getLogger(OweFeeServiceImpl.class);
     @Autowired
-    private WriteOffFeeService writeOffService;
+    private FeeCommService writeOffService;
     @Autowired
     private CalculateService calculateComponent;
     @Autowired
-    private PayLogFeeService payLogFeeService;
+    private FeePayLogService feePayLogService;
 
     @Override
-    public TradeCommInfoOut queryOweFee(TradeCommInfoIn tradeCommInfoIn) throws SkyArkException {
+    public TradeCommInfoOut queryOweFee(FeeCommInfoIn feeCommInfoIn) throws SkyArkException {
         TradeCommInfo tradeCommInfo = new TradeCommInfo();
         //查询用户资料
-        writeOffService.genUserDatumInfo(tradeCommInfoIn, tradeCommInfo);
+          writeOffService.getUserDatumInfo(feeCommInfoIn, tradeCommInfo);
         //限制大合账用户查询
-        if ("1".equals(tradeCommInfoIn.getTradeEnter()) && tradeCommInfoIn.isBigAcctRecvFee()) {
+        if ("1".equals(feeCommInfoIn.getTradeEnter()) && feeCommInfoIn.isBigAcctRecvFee()) {
             throw new SkyArkException(SysTypes.BUSI_ERROR_CODE, "$$$30010$$$该账户为大合帐账户，请到大合帐页面进行处理!");
         }
         //查询账期信息
-        writeOffService.genEparchyCycleInfo(tradeCommInfo,
-                tradeCommInfoIn.getEparchyCode(), ActPayPubDef.ACT_RDS_DBCONN);
+        writeOffService.getEparchyCycleInfo(tradeCommInfo,
+                feeCommInfoIn.getEparchyCode(), DbTypes.ACT_PARA_RDS);
         //查询账本
-        writeOffService.getAcctBalance(tradeCommInfoIn, tradeCommInfo);
+        writeOffService.getAcctBalance(feeCommInfoIn, tradeCommInfo);
         //查询账单
-        writeOffService.getOweBill(tradeCommInfoIn, tradeCommInfo);
+        writeOffService.getOweBill(feeCommInfoIn, tradeCommInfo);
         //只有做滞纳金计算才加载滞纳金减免工单和账户自定义缴费期
-        if (!writeOffService.ifCalcLateFee(tradeCommInfoIn, tradeCommInfo)) {
+        if (!writeOffService.ifCalcLateFee(feeCommInfoIn, tradeCommInfo)) {
             //计算滞纳金
             tradeCommInfo.setCalcLateFee(true);
             //获取滞纳金减免工单
-            writeOffService.getDerateFeeLog(tradeCommInfoIn, tradeCommInfo);
+            writeOffService.getFeeDerateLateFeeLog(feeCommInfoIn, tradeCommInfo);
             //获取账户自定义缴费期
-            writeOffService.getAcctPaymentCycle(tradeCommInfo, tradeCommInfo.getAccount().getAcctId(), ActPayPubDef.ACTS_DRDS_DBCONN);
+            writeOffService.getAcctPaymentCycle(tradeCommInfo, tradeCommInfo.getFeeAccount().getAcctId(), DbTypes.ACTS_DRDS);
         }
         //销账和结余计算
         calculateComponent.calc(tradeCommInfo);
-        return genTradeCommInfoOut(tradeCommInfoIn, tradeCommInfo);
+        return genTradeCommInfoOut(feeCommInfoIn, tradeCommInfo);
     }
 
     /**
@@ -74,11 +74,11 @@ public class OweFeeServiceImpl implements OweFeeService {
      * @param tradeCommInfo
      * @return
      */
-    private TradeCommInfoOut genTradeCommInfoOut(TradeCommInfoIn tradeCommInfoIn, TradeCommInfo tradeCommInfo) {
+    private TradeCommInfoOut genTradeCommInfoOut(FeeCommInfoIn feeCommInfoIn, TradeCommInfo tradeCommInfo) {
         TradeCommInfoOut tradeCommInfoOut = new TradeCommInfoOut();
         //销账规则
         WriteOffRuleInfo writeOffRuleInfo = tradeCommInfo.getWriteOffRuleInfo();
-        WriteSnapLog snaplog = tradeCommInfo.getWriteSnapLog();
+        FeeWriteSnapLog snaplog = tradeCommInfo.getFeeWriteSnapLog();
 
         //设置账期信息
         tradeCommInfoOut.setCurCycleId(writeOffRuleInfo.getCurCycle().getCycleId());
@@ -91,9 +91,9 @@ public class OweFeeServiceImpl implements OweFeeService {
         tradeCommInfoOut.setNetTypeCode(mainUser.getNetTypeCode());
         tradeCommInfoOut.setUserId(mainUser.getUserId());
         tradeCommInfoOut.setBrandCode(mainUser.getBrandCode());
-        tradeCommInfoOut.setAcctId(tradeCommInfo.getAccount().getAcctId());
-        tradeCommInfoOut.setPayName(tradeCommInfo.getAccount().getPayName());
-        tradeCommInfoOut.setPayModeCode(tradeCommInfo.getAccount().getPayModeCode());
+        tradeCommInfoOut.setAcctId(tradeCommInfo.getFeeAccount().getAcctId());
+        tradeCommInfoOut.setPayName(tradeCommInfo.getFeeAccount().getPayName());
+        tradeCommInfoOut.setPayModeCode(tradeCommInfo.getFeeAccount().getPayModeCode());
         tradeCommInfoOut.setCreditValue(String.valueOf(mainUser.getCreditValue()));
         tradeCommInfoOut.setProvinceCode(mainUser.getProvinceCode());
 
@@ -111,8 +111,8 @@ public class OweFeeServiceImpl implements OweFeeService {
         long sumTransFee = 0;
         tradeCommInfoOut.setTransMoney(String.valueOf(sumTransFee));
         List<User> userList = tradeCommInfo.getPayUsers();
-        if (!StringUtil.isEmptyCheckNullStr(tradeCommInfoIn.getWriteoffMode())
-                && "2".equals(tradeCommInfoIn.getWriteoffMode())) {
+        if (!StringUtil.isEmptyCheckNullStr(feeCommInfoIn.getWriteoffMode())
+                && "2".equals(feeCommInfoIn.getWriteoffMode())) {
             userList = tradeCommInfo.getAllPayUsers();
         }
         if (userList.size() > 1) {
@@ -207,12 +207,12 @@ public class OweFeeServiceImpl implements OweFeeService {
         balanceInfo.setAvailSpecialFee(balanceInfo.getAvailSpePreFee() + balanceInfo.getAvailSpeGrants());
 
         //获取当前余额信息
-        List<AccountDeposit> tempdeposits = tradeCommInfo.getAccountDeposits();
-        List<AccountDeposit> deposits = new ArrayList<>();
+        List<FeeAccountDeposit> tempdeposits = tradeCommInfo.getFeeAccountDeposits();
+        List<FeeAccountDeposit> deposits = new ArrayList<>();
         //ECS要求把可用限额账本拆成两个账本显示
-        for (AccountDeposit tempdeposit : tempdeposits) {
+        for (FeeAccountDeposit tempdeposit : tempdeposits) {
             if (tempdeposit.getLimitMode() == '1' && (tempdeposit.getDepositTypeCode() == '0' || tempdeposit.getDepositTypeCode() == '2')) {
-                AccountDeposit tempdeposit2 = tempdeposit.clone();
+                FeeAccountDeposit tempdeposit2 = tempdeposit.clone();
                 tempdeposit2.setMoney(tempdeposit.getMoney() - tempdeposit.getLeftCanUse()
                         - tempdeposit.getImpFee() - tempdeposit.getUseRecvFee());
 //                tempdeposit2.setOddMoney(tempdeposit.getOddMoney() + tempdeposit.getEvenMoney() - tempdeposit.getLeftCanUse() - tempdeposit.getImpFee() - tempdeposit.getUseRecvFee());
@@ -243,9 +243,9 @@ public class OweFeeServiceImpl implements OweFeeService {
             }
         }
         //查询用户的活动实例
-        Account account = tradeCommInfo.getAccount();
+        FeeAccount feeAccount = tradeCommInfo.getFeeAccount();
         //需要放在账户域Dao层中
-        List<DiscntDeposit> discntDeposits = payLogFeeService.getUserDiscntDepositByUserId(account.getAcctId(), mainUser.getUserId(), ActPayPubDef.ACTS_DRDS_DBCONN);
+        List<FeeDiscntDeposit> feeDiscntDeposits = feePayLogService.getUserDiscntDepositByUserId(feeAccount.getAcctId(), mainUser.getUserId(), DbTypes.ACTS_DRDS);
         //修改预付费用户校验逻辑，暂时根据主用户进行校验
         boolean hasPrePayUser = "1".equals(mainUser.getPrepayTag()) ? true : false;
         if (hasPrePayUser) {
@@ -264,7 +264,7 @@ public class OweFeeServiceImpl implements OweFeeService {
             }
         }
         List<DetailDepositInfo> detailDepositInfos = new ArrayList<>();
-        for (AccountDeposit deposit : deposits) {
+        for (FeeAccountDeposit deposit : deposits) {
             DetailDepositInfo tempdepositInfo = new DetailDepositInfo();
             tempdepositInfo.setAcctId(deposit.getAcctId());
             tempdepositInfo.setAcctBalanceId(deposit.getAcctBalanceId());
@@ -360,35 +360,35 @@ public class OweFeeServiceImpl implements OweFeeService {
                 } else {
                     tempdepositInfo.setAmount(0);
                     tempdepositInfo.setFreezeFee(0);
-                    for (DiscntDeposit discntDeposit : discntDeposits) {
-                        if (deposit.getAcctBalanceId().equals(discntDeposit.getAcctBalanceId())) {
-                            tempdepositInfo.setFreezeFee(discntDeposit.getLeftMoney());
+                    for (FeeDiscntDeposit feeDiscntDeposit : feeDiscntDeposits) {
+                        if (deposit.getAcctBalanceId().equals(feeDiscntDeposit.getAcctBalanceId())) {
+                            tempdepositInfo.setFreezeFee(feeDiscntDeposit.getLeftMoney());
                             long amount = 0;
-                            if (discntDeposit.getLimitMode() == '0') {
+                            if (feeDiscntDeposit.getLimitMode() == '0') {
                                 //无限额，一次性转
-                                amount = discntDeposit.getMoney();
-                            } else if (discntDeposit.getLimitMode() == '1' || discntDeposit.getLimitMode() == 'c' || discntDeposit.getLimitMode() == 'd') {
-                                amount = discntDeposit.getLimitMoney();
-                                if (discntDeposit.getLimitMoney() <= 0) {
-                                    amount = discntDeposit.getMoney() / discntDeposit.getMonths();
+                                amount = feeDiscntDeposit.getMoney();
+                            } else if (feeDiscntDeposit.getLimitMode() == '1' || feeDiscntDeposit.getLimitMode() == 'c' || feeDiscntDeposit.getLimitMode() == 'd') {
+                                amount = feeDiscntDeposit.getLimitMoney();
+                                if (feeDiscntDeposit.getLimitMoney() <= 0) {
+                                    amount = feeDiscntDeposit.getMoney() / feeDiscntDeposit.getMonths();
                                 }
-                            } else if (discntDeposit.getLimitMode() == '4') {
-                                String splitMethod = discntDeposit.getSplitMethod();
+                            } else if (feeDiscntDeposit.getLimitMode() == '4') {
+                                String splitMethod = feeDiscntDeposit.getSplitMethod();
                                 String[] splitMethods = splitMethod.split(";");
                                 int len = splitMethods[0].length();
                                 String indexString = splitMethods[0];
                                 if (len > 0) {
                                     if (indexString.substring(indexString.length() - 1, indexString.length()).charAt(0) == '%') //按比例拆分
-                                        amount = discntDeposit.getMoney() / 100 * Long.parseLong(indexString);
+                                        amount = feeDiscntDeposit.getMoney() / 100 * Long.parseLong(indexString);
                                     else //按固定金额
                                         amount = Long.parseLong(indexString);
                                 } else
                                     throw new SkyArkException("总优惠分解方式错误!" + splitMethod);
 
-                            } else if (discntDeposit.getLimitMode() == 'm' || discntDeposit.getLimitMode() == '6' || discntDeposit.getLimitMode() == '8') {
-                                amount = discntDeposit.getLimitMoney();
+                            } else if (feeDiscntDeposit.getLimitMode() == 'm' || feeDiscntDeposit.getLimitMode() == '6' || feeDiscntDeposit.getLimitMode() == '8') {
+                                amount = feeDiscntDeposit.getLimitMoney();
                             }
-                            amount = discntDeposit.getLeftMoney() > amount ? amount : discntDeposit.getLeftMoney();
+                            amount = feeDiscntDeposit.getLeftMoney() > amount ? amount : feeDiscntDeposit.getLeftMoney();
                             tempdepositInfo.setAmount(amount);
                         }
                     }
@@ -418,8 +418,8 @@ public class OweFeeServiceImpl implements OweFeeService {
             }
         }
         if (snaplog.getAllNewBOweFee() > 0) {
-            List<Bill> billList = tradeCommInfo.getBills();
-            AcctPaymentCycle paymentCycle = tradeCommInfo.getAcctPaymentCycle();
+            List<FeeBill> feeBillList = tradeCommInfo.getFeeBills();
+            FeeAcctPaymentCycle paymentCycle = tradeCommInfo.getActPaymentCycle();
             int maxAcctCycleId = writeOffRuleInfo.getMaxAcctCycle().getCycleId();
             int firstCalCycleId = maxAcctCycleId;//计算本月应交的起始月
             if (paymentCycle != null) {
@@ -435,14 +435,14 @@ public class OweFeeServiceImpl implements OweFeeService {
             }
             long oweFee = 0;//往月欠费
             long oldFee = 0;//上上个月的欠费
-            for (Bill bill : billList) {
-                if (bill.getCycleId() <= maxAcctCycleId && bill.getCycleId() >= firstCalCycleId) {
-                    oweFee += bill.getBalance() + bill.getLateBalance() + bill.getNewLateFee()
-                            - bill.getDerateFee() - bill.getCurrWriteOffLate() - bill.getCurrWriteOffBalance();
+            for (FeeBill feeBill : feeBillList) {
+                if (feeBill.getCycleId() <= maxAcctCycleId && feeBill.getCycleId() >= firstCalCycleId) {
+                    oweFee += feeBill.getBalance() + feeBill.getLateBalance() + feeBill.getNewLateFee()
+                            - feeBill.getDerateFee() - feeBill.getCurrWriteOffLate() - feeBill.getCurrWriteOffBalance();
                 }
-                if (bill.getCycleId() < maxAcctCycleId) {
-                    oldFee += bill.getBalance() + bill.getLateBalance() + bill.getNewLateFee()
-                            - bill.getDerateFee() - bill.getCurrWriteOffLate() - bill.getCurrWriteOffBalance();
+                if (feeBill.getCycleId() < maxAcctCycleId) {
+                    oldFee += feeBill.getBalance() + feeBill.getLateBalance() + feeBill.getNewLateFee()
+                            - feeBill.getDerateFee() - feeBill.getCurrWriteOffLate() - feeBill.getCurrWriteOffBalance();
                 }
             }
             tradeCommInfoOut.setIntfFee01(String.valueOf(oweFee));
@@ -455,47 +455,47 @@ public class OweFeeServiceImpl implements OweFeeService {
         long prePrintFee = 0; //预打金额
         int recvCycleId = 0; //缴费月份接口需要
         // 0:只取得欠费信息,1 加上帐本信息，2加上帐单信息 3加上销帐日志和存取款日志
-        int targetData = Integer.parseInt(tradeCommInfoIn.getTargetData());
+        int targetData = Integer.parseInt(feeCommInfoIn.getTargetData());
         if (targetData > 0) {
             if (targetData > 1) {
                 //追加账单信息
-                List<Bill> billList = tradeCommInfo.getBills();
-                Map<Integer, Bill> mMainBill = new HashMap<>();
-                for (Bill bill : billList) {
-                    if (mMainBill.containsKey(bill.getCycleId())) {
-                        Bill temp = mMainBill.get(bill.getCycleId());
-                        temp.setFee(temp.getFee() + bill.getFee());
-                        temp.setWriteoffFee1(temp.getWriteoffFee1() + bill.getWriteoffFee1());
-                        temp.setBalance(temp.getBalance() + bill.getBalance());
-                        temp.setLateFee(temp.getLateFee() + bill.getLateFee());
-                        temp.setLateBalance(temp.getLateBalance() + bill.getLateBalance());
-                        temp.setNewLateFee(temp.getNewLateFee() + bill.getNewLateFee());
-                        temp.setDerateFee(temp.getDerateFee() + bill.getDerateFee());
-                        temp.setCurrWriteOffBalance(temp.getCurrWriteOffBalance() + bill.getCurrWriteOffBalance());
-                        temp.setCurrWriteOffLate(temp.getCurrWriteOffLate() + bill.getCurrWriteOffLate());
-                        temp.setaDiscnt(temp.getaDiscnt() + bill.getaDiscnt());
-                        temp.setbDiscnt(temp.getbDiscnt() + bill.getbDiscnt());
-                        temp.setAdjustBefore(temp.getAdjustBefore() + bill.getAdjustBefore());
-                        temp.setAdjustAfter(temp.getAdjustAfter() + bill.getAdjustAfter());
-                        temp.setCanpayTag(bill.getCanpayTag());
-                        temp.setPayTag(bill.getPayTag());
+                List<FeeBill> feeBillList = tradeCommInfo.getFeeBills();
+                Map<Integer, FeeBill> mMainBill = new HashMap<>();
+                for (FeeBill feeBill : feeBillList) {
+                    if (mMainBill.containsKey(feeBill.getCycleId())) {
+                        FeeBill temp = mMainBill.get(feeBill.getCycleId());
+                        temp.setFee(temp.getFee() + feeBill.getFee());
+                        temp.setWriteoffFee1(temp.getWriteoffFee1() + feeBill.getWriteoffFee1());
+                        temp.setBalance(temp.getBalance() + feeBill.getBalance());
+                        temp.setLateFee(temp.getLateFee() + feeBill.getLateFee());
+                        temp.setLateBalance(temp.getLateBalance() + feeBill.getLateBalance());
+                        temp.setNewLateFee(temp.getNewLateFee() + feeBill.getNewLateFee());
+                        temp.setDerateFee(temp.getDerateFee() + feeBill.getDerateFee());
+                        temp.setCurrWriteOffBalance(temp.getCurrWriteOffBalance() + feeBill.getCurrWriteOffBalance());
+                        temp.setCurrWriteOffLate(temp.getCurrWriteOffLate() + feeBill.getCurrWriteOffLate());
+                        temp.setaDiscnt(temp.getaDiscnt() + feeBill.getaDiscnt());
+                        temp.setbDiscnt(temp.getbDiscnt() + feeBill.getbDiscnt());
+                        temp.setAdjustBefore(temp.getAdjustBefore() + feeBill.getAdjustBefore());
+                        temp.setAdjustAfter(temp.getAdjustAfter() + feeBill.getAdjustAfter());
+                        temp.setCanpayTag(feeBill.getCanpayTag());
+                        temp.setPayTag(feeBill.getPayTag());
                         if (temp.getOldPayTag() != '7') {
-                            temp.setOldPayTag(bill.getOldPayTag());
+                            temp.setOldPayTag(feeBill.getOldPayTag());
                         }
                     } else {
-                        Bill billTemp = bill.clone();
-                        mMainBill.put(bill.getCycleId(), billTemp);
+                        FeeBill feeBillTemp = feeBill.clone();
+                        mMainBill.put(feeBill.getCycleId(), feeBillTemp);
                     }
-                    if (bill.getOldPayTag() == '7') {
-                        consignFee += bill.getBalance() + bill.getLateBalance() + bill.getNewLateFee()
-                                - bill.getDerateFee() - bill.getCurrWriteOffBalance() - bill.getCurrWriteOffLate();
+                    if (feeBill.getOldPayTag() == '7') {
+                        consignFee += feeBill.getBalance() + feeBill.getLateBalance() + feeBill.getNewLateFee()
+                                - feeBill.getDerateFee() - feeBill.getCurrWriteOffBalance() - feeBill.getCurrWriteOffLate();
                     }
-                    if (bill.getOldPayTag() == '8') {
-                        prePrintFee += bill.getBalance() + bill.getLateBalance() + bill.getNewLateFee()
-                                - bill.getDerateFee() - bill.getCurrWriteOffBalance() - bill.getCurrWriteOffLate();
+                    if (feeBill.getOldPayTag() == '8') {
+                        prePrintFee += feeBill.getBalance() + feeBill.getLateBalance() + feeBill.getNewLateFee()
+                                - feeBill.getDerateFee() - feeBill.getCurrWriteOffBalance() - feeBill.getCurrWriteOffLate();
                     }
-                    if (recvCycleId < bill.getCycleId())
-                        recvCycleId = bill.getCycleId();
+                    if (recvCycleId < feeBill.getCycleId())
+                        recvCycleId = feeBill.getCycleId();
                 }
                 logger.debug("账单条数mMainBill = " + mMainBill.size());
                 if (consignFee != 0) {
@@ -509,7 +509,7 @@ public class OweFeeServiceImpl implements OweFeeService {
                 //账单明细
                 List<DetailBillInfo> detailBillInfoList = new ArrayList<>();
                 long lateFee = 0;
-                for (Map.Entry<Integer, Bill> it : mMainBill.entrySet()) {
+                for (Map.Entry<Integer, FeeBill> it : mMainBill.entrySet()) {
                     DetailBillInfo detailBillInfo = new DetailBillInfo();
                     detailBillInfo.setAcctId(it.getValue().getAcctId());
                     detailBillInfo.setCycleId(it.getValue().getCycleId());
@@ -535,40 +535,40 @@ public class OweFeeServiceImpl implements OweFeeService {
                 tradeCommInfoOut.setDetailBillInfos(detailBillInfoList);
 
                 //<cycleId, <integrateItemCode,PBill>>
-                Map<Integer, Map<Integer, Bill>> subBill = new HashMap<>();
-                for (Bill bill : billList) {
-                    if (subBill.containsKey(bill.getCycleId())) {
-                        Map<Integer, Bill> tmpMapBill = subBill.get(bill.getCycleId());
-                        if (tmpMapBill.containsKey(bill.getIntegrateItemCode())) {
-                            Bill tempBill = tmpMapBill.get(bill.getIntegrateItemCode());
-                            tempBill.setFee(tempBill.getFee() + bill.getFee());
-                            tempBill.setBalance(tempBill.getBalance() + bill.getBalance());
-                            tempBill.setLateBalance(tempBill.getLateBalance() + bill.getLateBalance());
-                            tempBill.setNewLateFee(tempBill.getNewLateFee() + bill.getNewLateFee());
-                            tempBill.setDerateFee(tempBill.getDerateFee() + bill.getDerateFee());
-                            tempBill.setCurrWriteOffBalance(tempBill.getCurrWriteOffBalance() + bill.getCurrWriteOffBalance());
-                            tempBill.setCurrWriteOffLate(tempBill.getCurrWriteOffLate() + bill.getCurrWriteOffLate());
-                            tempBill.setaDiscnt(tempBill.getaDiscnt() + bill.getaDiscnt());
-                            tempBill.setbDiscnt(tempBill.getbDiscnt() + bill.getbDiscnt());
-                            tempBill.setAdjustAfter(tempBill.getAdjustAfter() + bill.getAdjustAfter());
-                            tempBill.setAdjustBefore(tempBill.getAdjustBefore() + bill.getAdjustBefore());
+                Map<Integer, Map<Integer, FeeBill>> subBill = new HashMap<>();
+                for (FeeBill feeBill : feeBillList) {
+                    if (subBill.containsKey(feeBill.getCycleId())) {
+                        Map<Integer, FeeBill> tmpMapBill = subBill.get(feeBill.getCycleId());
+                        if (tmpMapBill.containsKey(feeBill.getIntegrateItemCode())) {
+                            FeeBill tempFeeBill = tmpMapBill.get(feeBill.getIntegrateItemCode());
+                            tempFeeBill.setFee(tempFeeBill.getFee() + feeBill.getFee());
+                            tempFeeBill.setBalance(tempFeeBill.getBalance() + feeBill.getBalance());
+                            tempFeeBill.setLateBalance(tempFeeBill.getLateBalance() + feeBill.getLateBalance());
+                            tempFeeBill.setNewLateFee(tempFeeBill.getNewLateFee() + feeBill.getNewLateFee());
+                            tempFeeBill.setDerateFee(tempFeeBill.getDerateFee() + feeBill.getDerateFee());
+                            tempFeeBill.setCurrWriteOffBalance(tempFeeBill.getCurrWriteOffBalance() + feeBill.getCurrWriteOffBalance());
+                            tempFeeBill.setCurrWriteOffLate(tempFeeBill.getCurrWriteOffLate() + feeBill.getCurrWriteOffLate());
+                            tempFeeBill.setaDiscnt(tempFeeBill.getaDiscnt() + feeBill.getaDiscnt());
+                            tempFeeBill.setbDiscnt(tempFeeBill.getbDiscnt() + feeBill.getbDiscnt());
+                            tempFeeBill.setAdjustAfter(tempFeeBill.getAdjustAfter() + feeBill.getAdjustAfter());
+                            tempFeeBill.setAdjustBefore(tempFeeBill.getAdjustBefore() + feeBill.getAdjustBefore());
                         } else {
-                            Bill subbillTemp = new Bill();
-                            subbillTemp = bill;
-                            tmpMapBill.put(bill.getIntegrateItemCode(), subbillTemp);
+                            FeeBill subbillTemp = new FeeBill();
+                            subbillTemp = feeBill;
+                            tmpMapBill.put(feeBill.getIntegrateItemCode(), subbillTemp);
                         }
 
                     } else {
-                        Map<Integer, Bill> tmpMap = new HashMap<>();
-                        tmpMap.put(bill.getIntegrateItemCode(), bill);
-                        subBill.put(bill.getCycleId(), tmpMap);
+                        Map<Integer, FeeBill> tmpMap = new HashMap<>();
+                        tmpMap.put(feeBill.getIntegrateItemCode(), feeBill);
+                        subBill.put(feeBill.getCycleId(), tmpMap);
                     }
                 }
                 logger.debug("子账单明细条数subBill = " + subBill.size());
                 //子账单明细
                 List<SubDetailBillInfo> subDetailBillInfoList = new ArrayList<>();
-                for (Map.Entry<Integer, Map<Integer, Bill>> it : subBill.entrySet()) {
-                    for (Map.Entry<Integer, Bill> it2 : it.getValue().entrySet()) {
+                for (Map.Entry<Integer, Map<Integer, FeeBill>> it : subBill.entrySet()) {
+                    for (Map.Entry<Integer, FeeBill> it2 : it.getValue().entrySet()) {
                         SubDetailBillInfo subBillInfoTemp = new SubDetailBillInfo();
                         subBillInfoTemp.setAcctId(it2.getValue().getAcctId());
                         subBillInfoTemp.setCycleIdb(it2.getValue().getCycleId());

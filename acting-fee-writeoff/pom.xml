@@ -21,27 +21,13 @@
         </dependency>
         <dependency>
             <groupId>com.unicom.acting.fee</groupId>
-            <artifactId>acting-fee-dao</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.unicom.acting.fee</groupId>
             <artifactId>acting-fee-calc</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.unicom.acts.pay</groupId>
-            <artifactId>acts-pay-dao</artifactId>
+            <groupId>com.unicom.acting.fee</groupId>
+            <artifactId>acting-fee-dao</artifactId>
         </dependency>
     </dependencies>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <artifactId>acts-pay-dependencies</artifactId>
-                <groupId>com.unicom.acts.pay</groupId>
-                <version>${acts-pay.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+
 </project>

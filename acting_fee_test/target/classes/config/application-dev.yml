@@ -1,0 +1,99 @@
+server:
+  port: 8080
+  tomcat:
+    max-threads: 2000
+
+spring:
+    cache:
+        type: redis
+    redis:
+        cluster:
+            nodes:
+            - 10.124.143.40:8000
+            - 10.124.143.40:8001
+            - 10.124.143.40:8002
+            - 10.124.143.41:8003
+            - 10.124.143.41:8004
+            - 10.124.143.41:8005
+            - 10.124.143.42:8006
+            - 10.124.143.42:8007
+        pool:
+            max-active: 100
+            max-wait: -1
+            max-idle: 100
+            min-idle: 50
+        timeout: 2000
+
+redis:
+    cache:
+        defaultExpiration: 300
+        expires:
+          - cacheKey: actingfeewriteoff_getcurcycle
+            cacheExpire: 300
+          - cacheKey: actingfeewriteoff_getmaxcycle
+            cacheExpire: 300
+          - cacheKey: actingfeewriteoff_getcommpara
+            cacheExpire: 300
+          - cacheKey: actingfeewriteoff_nettypeparentcode
+            cacheExpire: 300
+          - cacheKey: actingfeewriteoff_provcodebyeparchy
+            cacheExpire: 300
+
+jdbc:
+    enable: true
+    type: oracle
+    transaction:
+      enable: true
+      type: LOCAL_TX
+
+logs:
+  svcperform:
+    enable: true
+    printResult: true
+
+hystrix:
+  threadpool:
+    default:
+      coreSize: 2000
+      maxQueueSize: 3000
+      queueSizeRejectionThreshold: 3000
+      maximumSize: 3000
+      allowMaximumSizeToDivergeFromCoreSize: true
+  command:
+    default:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 50000
+      fallback:
+        isolation:
+          semaphore:
+            maxConcurrentRequests: 1000
+
+qam:
+  httpclient:
+    rests:
+      - domain: accounting
+        ip: 10.124.142.83
+  datasource:
+    jdbcs:
+      - name: acts_drds
+        url: jdbc:mysql://10.124.156.254:3306/d_b_dacts?characterEncoding=utf-8
+        username: d_b_dacts
+        password: fv_7OMPv1JR5RfSTOzB3
+        driverClassName: com.mysql.jdbc.Driver
+        provinces: acts
+      - name: acting_drds
+        url: jdbc:mysql://10.124.156.203:3306/d_b_dacting?characterEncoding=utf-8
+        username: d_b_dacting
+        password: Oa_2ZNTnqNO9sttdoAqm
+        driverClassName: com.mysql.jdbc.Driver
+        provinces: acting
+      - name: act_rds
+        url: jdbc:mysql://10.124.145.110:3306/d_b_iactpara?characterEncoding=utf-8
+        username: d_b_iactpara
+        password: po_JUgQVxPEwa2xf1gPG
+        driverClassName: com.mysql.jdbc.Driver
+        provinces: rds
+
+

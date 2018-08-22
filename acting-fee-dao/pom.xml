@@ -20,6 +20,10 @@
             <artifactId>skyark-component-jdbc</artifactId>
         </dependency>
         <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.unicom.skyark.component</groupId>
             <artifactId>skyark-component-redis</artifactId>
         </dependency>

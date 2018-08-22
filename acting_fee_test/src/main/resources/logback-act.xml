@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <springProperty scope="context" name="appname" source="spring.application.name"
+                    defaultValue="act_micros"/>
+    <property name="DEV_PATTERN"
+              value="${CONSOLE_LOG_PATTERN:-%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}}"/>
+    <property name="TEST_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } [%15.15t] --- [TxId : %X{PtxId} , SpanId : %X{PspanId}] %-40.40logger{39} : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+    <property name="PROD_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } [%15.15t] --- [TxId : %X{PtxId} , SpanId : %X{PspanId}] %-40.40logger{39} : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+    <property name="TEST_FILEPATH" value="/opt/logs/busi"/>
+    <property name="PROD_FILEPATH" value="/opt/logs/busi"/>
+    <!-- 开发环境 -->
+    <springProfile name="dev">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>${DEV_PATTERN}</pattern>
+                <charset>utf8</charset>
+            </encoder>
+        </appender>
+        <appender name="DEVFILES" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${TEST_FILEPATH}/${appname}-info.log</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                <fileNamePattern>${TEST_FILEPATH}/${appname}-info-%d{yyyy-MM-dd}.log</fileNamePattern>
+                <maxHistory>7</maxHistory>
+            </rollingPolicy>
+            <encoder>
+                <pattern>${TEST_PATTERN}</pattern>
+            </encoder>
+        </appender>
+        <logger name="com.cbss" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="DEVFILES"/>
+        </logger>
+        <logger name="com.unicom" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="DEVFILES"/>
+        </logger>
+        <logger name="org.springframework.data.hadoop.hbase" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="DEVFILES"/>
+        </logger>
+        <logger name="druid.sql.Statement" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="DEVFILES"/>
+        </logger>
+        <logger name="druid.sql.ResultSet" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="DEVFILES"/>
+        </logger>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="DEVFILES"/>
+        </root>
+    </springProfile>
+    <!-- 测试环境 -->
+    <springProfile name="test">
+        <appender name="TESTFILES" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${TEST_FILEPATH}/${appname}-info.log</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                <fileNamePattern>${TEST_FILEPATH}/${appname}-info-%d{yyyy-MM-dd}.log</fileNamePattern>
+                <maxHistory>7</maxHistory>
+            </rollingPolicy>
+            <encoder>
+                <pattern>${TEST_PATTERN}</pattern>
+            </encoder>
+        </appender>
+        <appender name="TESTFILESERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                <level>WARN</level>
+            </filter>
+            <file>${TEST_FILEPATH}/${appname}-error.log</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+                <fileNamePattern>${TEST_FILEPATH}/${appname}-error.log.%i</fileNamePattern>
+                <minIndex>1</minIndex>
+                <maxIndex>7</maxIndex>
+            </rollingPolicy>
+            <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+                <maxFileSize>100MB</maxFileSize>
+            </triggeringPolicy>
+            <encoder>
+                <pattern>${TEST_PATTERN}</pattern>
+            </encoder>
+        </appender>
+
+        <appender name="TESTCONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>${TEST_PATTERN}</pattern>
+                <charset>utf8</charset>
+            </encoder>
+        </appender>
+        <logger name="com.cbss" level="DEBUG" additivity="false">
+            <appender-ref ref="TESTFILES"/>
+            <appender-ref ref="TESTCONSOLE"/>
+            <appender-ref ref="TESTFILESERROR"/>
+        </logger>
+        <logger name="org.springframework.data.hadoop.hbase" level="DEBUG" additivity="false">
+            <appender-ref ref="TESTFILES"/>
+            <appender-ref ref="TESTCONSOLE"/>
+            <appender-ref ref="TESTFILESERROR"/>
+        </logger>
+        <logger name="druid.sql.Statement" level="INFO" additivity="false">
+            <appender-ref ref="TESTFILES"/>
+            <appender-ref ref="TESTCONSOLE"/>
+            <appender-ref ref="TESTFILESERROR"/>
+        </logger>
+        <logger name="druid.sql.ResultSet" level="INFO" additivity="false">
+            <appender-ref ref="TESTFILES"/>
+            <appender-ref ref="TESTCONSOLE"/>
+            <appender-ref ref="TESTFILESERROR"/>
+        </logger>
+        <root level="INFO">
+            <appender-ref ref="TESTFILES"/>
+            <appender-ref ref="TESTCONSOLE"/>
+            <appender-ref ref="TESTFILESERROR"/>
+        </root>
+    </springProfile>
+    <!-- 生产环境 -->
+    <springProfile name="prod">
+        <appender name="PRODINFO" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${PROD_FILEPATH}/${appname}-info.log</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+                <fileNamePattern>${PROD_FILEPATH}/${appname}-info.log.%i</fileNamePattern>
+                <minIndex>1</minIndex>
+                <maxIndex>10</maxIndex>
+            </rollingPolicy>
+            <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+                <maxFileSize>100MB</maxFileSize>
+            </triggeringPolicy>
+            <layout>
+                <pattern>${PROD_PATTERN}</pattern>
+            </layout>
+        </appender>
+        <appender name="PRODERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                <level>WARN</level>
+            </filter>
+            <file>${PROD_FILEPATH}/${appname}-error.log</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+                <fileNamePattern>${PROD_FILEPATH}/${appname}-error.log.%i</fileNamePattern>
+                <minIndex>1</minIndex>
+                <maxIndex>10</maxIndex>
+            </rollingPolicy>
+            <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+                <maxFileSize>100MB</maxFileSize>
+            </triggeringPolicy>
+            <layout>
+                <pattern>${PROD_PATTERN}</pattern>
+            </layout>
+        </appender>
+        <logger name="com.cbss" level="INFO" additivity="false">
+            <appender-ref ref="PRODINFO"/>
+            <appender-ref ref="PRODERROR"/>
+        </logger>
+        <root level="INFO">
+            <appender-ref ref="PRODINFO"/>
+            <appender-ref ref="PRODERROR"/>
+        </root>
+    </springProfile>
+</configuration>

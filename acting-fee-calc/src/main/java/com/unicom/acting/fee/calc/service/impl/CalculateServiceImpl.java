@@ -4,14 +4,10 @@ import com.unicom.skyark.component.common.constants.SysTypes;
 import com.unicom.skyark.component.exception.SkyArkException;
 import com.unicom.skyark.component.util.StringUtil;
 import com.unicom.skyark.component.util.TimeUtil;
-import com.unicom.acting.fee.calc.domain.TradeCommInfo;
-import com.unicom.acting.fee.calc.service.BillService;
+import com.unicom.acting.fee.calc.service.BillCalcService;
 import com.unicom.acting.fee.calc.service.CalculateService;
-import com.unicom.acting.fee.calc.service.DepositService;
+import com.unicom.acting.fee.calc.service.DepositCalcService;
 import com.unicom.acting.fee.domain.*;
-import com.unicom.acts.pay.domain.Account;
-import com.unicom.acts.pay.domain.AccountDeposit;
-import com.unicom.acts.pay.domain.AcctPaymentCycle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,30 +25,31 @@ import java.util.*;
 public class CalculateServiceImpl implements CalculateService {
     private static final Logger logger = LoggerFactory.getLogger(CalculateServiceImpl.class);
     @Autowired
-    private DepositService depositServiceImpl;
+    private DepositCalcService depositCalcServiceImpl;
     @Autowired
-    private BillService billServiceImpl;
+    private BillCalcService billCalcServiceImpl;
+
 
     //一次销账计算
     @Override
     public void calc(TradeCommInfo tradeCommInfo) {
         //后付费的实时账单不参与计算
-        tradeCommInfo.setBills(removePreRealBill(tradeCommInfo.getBills(), tradeCommInfo.getWriteOffRuleInfo()));
+        tradeCommInfo.setFeeBills(removePreRealBill(tradeCommInfo.getFeeBills(), tradeCommInfo.getWriteOffRuleInfo()));
         //备份赠款销账金额
-        backupWriteOffFee1(tradeCommInfo.getBills());
+        backupWriteOffFee1(tradeCommInfo.getFeeBills());
         //生成虚拟帐本
-        depositServiceImpl.genVirtualAcctBalanceId(tradeCommInfo);
+        depositCalcServiceImpl.genVirtualAcctBalanceId(tradeCommInfo);
         //存折排序
-        depositServiceImpl.accountDepositSort(tradeCommInfo.getAccountDeposits(), tradeCommInfo.getWriteOffRuleInfo());
+        depositCalcServiceImpl.accountDepositSort(tradeCommInfo.getFeeAccountDeposits(), tradeCommInfo.getWriteOffRuleInfo());
         //账单排序
-        billServiceImpl.billSort(tradeCommInfo.getBills(), tradeCommInfo.getWriteOffRuleInfo());
+        billCalcServiceImpl.billSort(tradeCommInfo.getFeeBills(), tradeCommInfo.getWriteOffRuleInfo());
         //滞纳金计算
         if (tradeCommInfo.isCalcLateFee()) {
             calcLateFee(tradeCommInfo);
         }
         pay(tradeCommInfo);
         //删除虚拟账本
-        depositServiceImpl.delVirtualAcctBalanceId(tradeCommInfo.getAccountDeposits(), tradeCommInfo.getVirtualRel());
+        depositCalcServiceImpl.delVirtualAcctBalanceId(tradeCommInfo.getFeeAccountDeposits(), tradeCommInfo.getVirtualRel());
         //结余计算
         genSimpleBalance(tradeCommInfo, false);
     }
@@ -63,80 +60,80 @@ public class CalculateServiceImpl implements CalculateService {
         //清除数据
         regressData(tradeCommInfo);
         //生成虚拟帐本
-        depositServiceImpl.genVirtualAcctBalanceId(tradeCommInfo);
+        depositCalcServiceImpl.genVirtualAcctBalanceId(tradeCommInfo);
         //存折排序
-        depositServiceImpl.accountDepositSort(tradeCommInfo.getAccountDeposits(), tradeCommInfo.getWriteOffRuleInfo());
+        depositCalcServiceImpl.accountDepositSort(tradeCommInfo.getFeeAccountDeposits(), tradeCommInfo.getWriteOffRuleInfo());
         //账单排序
-        billServiceImpl.billSort(tradeCommInfo.getBills(), tradeCommInfo.getWriteOffRuleInfo());
+        billCalcServiceImpl.billSort(tradeCommInfo.getFeeBills(), tradeCommInfo.getWriteOffRuleInfo());
         //选择销帐处理
-        billServiceImpl.chooseWriteOff(tradeCommInfo.getChooseUserId(),
-                tradeCommInfo.getChooseCycleId(), tradeCommInfo.getChooseItem(), tradeCommInfo.getBills());
+        billCalcServiceImpl.chooseWriteOff(tradeCommInfo.getChooseUserId(),
+                tradeCommInfo.getChooseCycleId(), tradeCommInfo.getChooseItem(), tradeCommInfo.getFeeBills());
         //销账计算
         pay(tradeCommInfo);
         //删除虚拟账本
-        depositServiceImpl.delVirtualAcctBalanceId(tradeCommInfo.getAccountDeposits(), tradeCommInfo.getVirtualRel());
+        depositCalcServiceImpl.delVirtualAcctBalanceId(tradeCommInfo.getFeeAccountDeposits(), tradeCommInfo.getVirtualRel());
         //结余计算
         genSimpleBalance(tradeCommInfo, true);
         //生成存取款日志表
         genAccessLog(tradeCommInfo);
         //设置账单标识
-        billServiceImpl.setBillPayTag(tradeCommInfo.getBills());
+        billCalcServiceImpl.setBillPayTag(tradeCommInfo.getFeeBills());
         //刨去新生成的滞纳金,生成实际的滞纳金，库外信控不走这步
-        decLateFee(tradeCommInfo.getBills());
+        decLateFee(tradeCommInfo.getFeeBills());
     }
 
     //剔除实时账单 改为return
-    private List<Bill> removePreRealBill(List<Bill> billList, WriteOffRuleInfo writeOffRuleInfo) {
+    private List<FeeBill> removePreRealBill(List<FeeBill> feeBillList, WriteOffRuleInfo writeOffRuleInfo) {
         //没有账单或者参数配置不剔除实时账单
-        if (CollectionUtils.isEmpty(billList)
+        if (CollectionUtils.isEmpty(feeBillList)
                 || writeOffRuleInfo.isCanPrerealbillCalc()) {
-            return billList;
+            return feeBillList;
         }
 
-        List<Bill> tmpBillList = new ArrayList<>();
+        List<FeeBill> tmpFeeBillList = new ArrayList<>();
         //后付费的实时账单不参与计算
-        for (Bill pBill : billList) {
+        for (FeeBill pFeeBill : feeBillList) {
             //准预付费的实时账单才输出 后付和预付均不输出
-            if ('2' != pBill.getCanpayTag() || '1' == pBill.getPrepayTag()) {
-                tmpBillList.add(pBill);
+            if ('2' != pFeeBill.getCanpayTag() || '1' == pFeeBill.getPrepayTag()) {
+                tmpFeeBillList.add(pFeeBill);
             }
         }
 
-        if (billList.size() != tmpBillList.size()) {
-            return tmpBillList;
+        if (feeBillList.size() != tmpFeeBillList.size()) {
+            return tmpFeeBillList;
         } else {
-            return billList;
+            return feeBillList;
         }
     }
 
     //备份赠款销账金额
-    private void backupWriteOffFee1(List<Bill> bills) {
-        if (CollectionUtils.isEmpty(bills)) {
+    private void backupWriteOffFee1(List<FeeBill> feeBills) {
+        if (CollectionUtils.isEmpty(feeBills)) {
             return;
         }
-        for (Bill pBill : bills) {
-            pBill.setRsrvFee1(pBill.getWriteoffFee1());
-            pBill.setRsrvFee2(pBill.getWriteoffFee2());
+        for (FeeBill pFeeBill : feeBills) {
+            pFeeBill.setRsrvFee1(pFeeBill.getWriteoffFee1());
+            pFeeBill.setRsrvFee2(pFeeBill.getWriteoffFee2());
         }
     }
 
     //滞纳金计算
     private void calcLateFee(TradeCommInfo tradeCommInfo) {
-        if (CollectionUtils.isEmpty(tradeCommInfo.getBills())
+        if (CollectionUtils.isEmpty(tradeCommInfo.getFeeBills())
                 || tradeCommInfo.getWriteOffRuleInfo() == null
-                || tradeCommInfo.getAccount() == null) {
+                || tradeCommInfo.getFeeAccount() == null) {
             return;
         }
 
         WriteOffRuleInfo writeOffRuleInfo = tradeCommInfo.getWriteOffRuleInfo();
-        List<Bill> bills = tradeCommInfo.getBills();
+        List<FeeBill> feeBills = tradeCommInfo.getFeeBills();
 
-        Account account = tradeCommInfo.getAccount();
+        FeeAccount feeAccount = tradeCommInfo.getFeeAccount();
         //坏帐算滞纳金标志
         boolean badBillCalc = writeOffRuleInfo.isBadBillCalcLateFee();
 
         //取得往月欠费，算滞纳金的本金, 存放每个帐期的往月欠费
-        Map<Integer, Long> cycleIdBillBalance = genCycleIdBillBalance(bills);
+        Map<Integer, Long> cycleIdBillBalance = genCycleIdBillBalance(feeBills);
         //离网用户销户时间
         Map<String, String> userDestroyDateMap = new HashMap();
         if (!CollectionUtils.isEmpty(cycleIdBillBalance)) {
@@ -170,24 +167,24 @@ public class CalculateServiceImpl implements CalculateService {
             //零时滞纳金合计
             long tmpLateFeeSum = 0;
 
-            for (Bill pBill : bills) {
-                if (pBill.getCycleId() == it.getKey()) {
+            for (FeeBill pFeeBill : feeBills) {
+                if (pFeeBill.getCycleId() == it.getKey()) {
                     //不计算滞纳金或者系统配置坏账不算滞纳金的情况，不做滞纳金计算
-                    if (!WriteOffRuleStaticInfo.isCalcLatefee(pBill.getIntegrateItemCode())
-                            || (('7' == pBill.getCanpayTag() || '8' == pBill.getCanpayTag())
+                    if (!WriteOffRuleStaticInfo.isCalcLatefee(pFeeBill.getIntegrateItemCode())
+                            || (('7' == pFeeBill.getCanpayTag() || '8' == pFeeBill.getCanpayTag())
                             && !badBillCalc)) {
                         continue;
                     }
 
                     //如果存在滞纳金计算截止时间
-                    if (!StringUtil.isEmpty(pBill.getLateCalDate()) && pBill.getLateCalDate().length() > 6) {
-                        calcDate = pBill.getLateCalDate();
+                    if (!StringUtil.isEmpty(pFeeBill.getLateCalDate()) && pFeeBill.getLateCalDate().length() > 6) {
+                        calcDate = pFeeBill.getLateCalDate();
                     }
 
                     //离网用户滞纳金计算时间取销户时间
                     if (!CollectionUtils.isEmpty(userDestroyDateMap)
-                            && userDestroyDateMap.containsKey(pBill.getUserId())) {
-                        calcDate = userDestroyDateMap.get(pBill.getUserId());
+                            && userDestroyDateMap.containsKey(pFeeBill.getUserId())) {
+                        calcDate = userDestroyDateMap.get(pFeeBill.getUserId());
                     }
 
                     //当前时间小于账单对应账期做滞纳金计算开始时间不做滞纳金计算
@@ -200,53 +197,53 @@ public class CalculateServiceImpl implements CalculateService {
                     long days = TimeUtil.diffDays(calcDate, lateFeeBeginTime);
                     days = (days > lateCalPara.getMaxDayNum() ? lateCalPara.getMaxDayNum() : days);
                     //帐后调账调减出现1分钱误差修改
-                    if ((pBill.getBalance() - pBill.getCurrWriteOffBalance()) < 0) {
-                        lateFee += (double) (pBill.getBalance() - pBill.getCurrWriteOffBalance()) / 1000
+                    if ((pFeeBill.getBalance() - pFeeBill.getCurrWriteOffBalance()) < 0) {
+                        lateFee += (double) (pFeeBill.getBalance() - pFeeBill.getCurrWriteOffBalance()) / 1000
                                 * lateCalPara.getLateFeeRatio1() * days - 0.5;
                     } else {
-                        lateFee += (double) (pBill.getBalance() - pBill.getCurrWriteOffBalance()) / 1000
+                        lateFee += (double) (pFeeBill.getBalance() - pFeeBill.getCurrWriteOffBalance()) / 1000
                                 * lateCalPara.getLateFeeRatio1() * days + 0.5;
                     }
 
                     //控制最大滞纳金减免金额
-                    if (tmpLateFeeSum + pBill.getLateBalance() + lateFee > lateCalPara.getMaxLateFee()) {
-                        lateFee = lateCalPara.getMaxLateFee() - (tmpLateFeeSum + pBill.getLateBalance());
+                    if (tmpLateFeeSum + pFeeBill.getLateBalance() + lateFee > lateCalPara.getMaxLateFee()) {
+                        lateFee = lateCalPara.getMaxLateFee() - (tmpLateFeeSum + pFeeBill.getLateBalance());
                     }
-                    tmpLateFeeSum += pBill.getLateBalance() + lateFee;
+                    tmpLateFeeSum += pFeeBill.getLateBalance() + lateFee;
 
                     //滞纳金减免额度
                     long derateFee = derateLatefee(tradeCommInfo,
-                            pBill.getAcctId(), pBill.getCycleId(), (pBill.getLateBalance() + lateFee));
+                            pFeeBill.getAcctId(), pFeeBill.getCycleId(), (pFeeBill.getLateBalance() + lateFee));
 
                     //新增滞纳金,不包含减免的滞纳金
-                    pBill.setNewLateFee(lateFee);
-                    pBill.setDerateFee(pBill.getDerateFee() + derateFee);
-                    monthLateFee += pBill.getLateBalance() + lateFee;
+                    pFeeBill.setNewLateFee(lateFee);
+                    pFeeBill.setDerateFee(pFeeBill.getDerateFee() + derateFee);
+                    monthLateFee += pFeeBill.getLateBalance() + lateFee;
                 }
             }
 
             //由于滞纳金按比例减免存在小数问题 所以需要修正处理
-            DerateLateFeeLog derateLog = getDerateLateFeeLog(
-                    tradeCommInfo.getDerateLateFeeLogs(), account.getAcctId(), it.getKey());
+            FeeDerateLateFeeLog derateLog = getDerateLateFeeLog(
+                    tradeCommInfo.getFeeDerateLateFeeLogs(), feeAccount.getAcctId(), it.getKey());
             //按比例
             if (derateLog != null && derateLog.getDerateRuleId() == 1) {
                 //实际按比例需要减免的金额
                 long tmpDeratefee = monthLateFee * derateLog.getDerateFee() / 100;
                 //误差
                 long errorFee = tmpDeratefee - derateLog.getUsedDerateFee();
-                if (errorFee > 0 && !CollectionUtils.isEmpty(bills)) {
+                if (errorFee > 0 && !CollectionUtils.isEmpty(feeBills)) {
                     //少减免,不存在多减免的情况，因为是浮点型到整型的减免
-                    for (int i = 0; i < bills.size(); ++i) {
-                        if (bills.get(i).getCycleId() == it.getKey()) {
+                    for (int i = 0; i < feeBills.size(); ++i) {
+                        if (feeBills.get(i).getCycleId() == it.getKey()) {
                             //新增滞纳金
-                            long newAdd = bills.get(i).getNewLateFee() + bills.get(i).getLateBalance() - bills.get(i).getDerateFee();
+                            long newAdd = feeBills.get(i).getNewLateFee() + feeBills.get(i).getLateBalance() - feeBills.get(i).getDerateFee();
                             if (newAdd > errorFee) {
                                 //滞纳金够补误差
-                                bills.get(i).setDerateFee(bills.get(i).getDerateFee() + errorFee);
+                                feeBills.get(i).setDerateFee(feeBills.get(i).getDerateFee() + errorFee);
                                 errorFee = 0;
                                 break;
                             } else {
-                                bills.get(i).setDerateFee(bills.get(i).getDerateFee() + newAdd);
+                                feeBills.get(i).setDerateFee(feeBills.get(i).getDerateFee() + newAdd);
                                 errorFee -= newAdd;
                             }
                         }
@@ -258,20 +255,20 @@ public class CalculateServiceImpl implements CalculateService {
     }
 
     //每个账期的总欠费
-    private Map<Integer, Long> genCycleIdBillBalance(List<Bill> bills) {
-        if (CollectionUtils.isEmpty(bills)) {
+    private Map<Integer, Long> genCycleIdBillBalance(List<FeeBill> feeBills) {
+        if (CollectionUtils.isEmpty(feeBills)) {
             return new HashMap();
         }
         Map<Integer, Long> cycBillBalance = new HashMap();
-        for (Bill pBill : bills) {
-            if (pBill.getCanpayTag() != '2'
-                    && WriteOffRuleStaticInfo.isCalcLatefee(pBill.getIntegrateItemCode())) {
-                long balance = pBill.getBalance() + pBill.getLateFee() - pBill.getCurrWriteOffBalance();
-                if (cycBillBalance.containsKey(pBill.getCycleId())) {
-                    long tmpFee = cycBillBalance.get(pBill.getCycleId()) + balance;
-                    cycBillBalance.put(pBill.getCycleId(), tmpFee);
+        for (FeeBill pFeeBill : feeBills) {
+            if (pFeeBill.getCanpayTag() != '2'
+                    && WriteOffRuleStaticInfo.isCalcLatefee(pFeeBill.getIntegrateItemCode())) {
+                long balance = pFeeBill.getBalance() + pFeeBill.getLateFee() - pFeeBill.getCurrWriteOffBalance();
+                if (cycBillBalance.containsKey(pFeeBill.getCycleId())) {
+                    long tmpFee = cycBillBalance.get(pFeeBill.getCycleId()) + balance;
+                    cycBillBalance.put(pFeeBill.getCycleId(), tmpFee);
                 } else {
-                    cycBillBalance.put(pBill.getCycleId(), balance);
+                    cycBillBalance.put(pFeeBill.getCycleId(), balance);
                 }
             }
         }
@@ -281,34 +278,34 @@ public class CalculateServiceImpl implements CalculateService {
     //账户自定义缴费期滞纳金计算开始计算天数
     private int getLateCalcSpecialIniDays(TradeCommInfo tradeCommInfo, int cycleId) {
         //没有自定义缴费期
-        if (tradeCommInfo.getAcctPaymentCycle() == null
-                || tradeCommInfo.getAcctPaymentCycle().getOffMonths() == 0
-                && tradeCommInfo.getAcctPaymentCycle().getBundleMonths() == 0
-                && tradeCommInfo.getAcctPaymentCycle().getOffDays() == 0) {
+        if (tradeCommInfo.getActPaymentCycle() == null
+                || tradeCommInfo.getActPaymentCycle().getOffMonths() == 0
+                && tradeCommInfo.getActPaymentCycle().getBundleMonths() == 0
+                && tradeCommInfo.getActPaymentCycle().getOffDays() == 0) {
             return 0;
         }
-        AcctPaymentCycle acctPaymentCycle = tradeCommInfo.getAcctPaymentCycle();
+        FeeAcctPaymentCycle feeAcctPaymentCycle = tradeCommInfo.getActPaymentCycle();
 
         //账户自定义缴费期还没生效
-        if (Integer.parseInt(acctPaymentCycle.getInDate()) > cycleId) {
+        if (Integer.parseInt(feeAcctPaymentCycle.getInDate()) > cycleId) {
             return 0;
         }
 
         int buldeEndCycleId = 0;
-        if (acctPaymentCycle.getBundleMonths() > 0) {
+        if (feeAcctPaymentCycle.getBundleMonths() > 0) {
             //按创建时间计算
-            buldeEndCycleId = Integer.parseInt(acctPaymentCycle.getInDate());
+            buldeEndCycleId = Integer.parseInt(feeAcctPaymentCycle.getInDate());
             buldeEndCycleId = TimeUtil.genCycle(buldeEndCycleId, -1);
             while (buldeEndCycleId < cycleId) {
-                buldeEndCycleId = TimeUtil.genCycle(buldeEndCycleId, acctPaymentCycle.getBundleMonths());
+                buldeEndCycleId = TimeUtil.genCycle(buldeEndCycleId, feeAcctPaymentCycle.getBundleMonths());
             }
         } else {
             buldeEndCycleId = cycleId;
         }
 
-        int endCycleId = TimeUtil.genCycle(buldeEndCycleId, acctPaymentCycle.getOffMonths());
+        int endCycleId = TimeUtil.genCycle(buldeEndCycleId, feeAcctPaymentCycle.getOffMonths());
         Cycle endCycle = WriteOffRuleStaticInfo.getCycle(endCycleId);
-        String endDate = TimeUtil.dateAddDays(endCycle.getCycEndTime().substring(0, 10), acctPaymentCycle.getOffDays());
+        String endDate = TimeUtil.dateAddDays(endCycle.getCycEndTime().substring(0, 10), feeAcctPaymentCycle.getOffDays());
         Cycle thisCycle = WriteOffRuleStaticInfo.getCycle(cycleId);
 
         return TimeUtil.diffDays(endDate, thisCycle.getCycEndTime().substring(0, 10));
@@ -317,55 +314,55 @@ public class CalculateServiceImpl implements CalculateService {
     //账单销账计算
     private void pay(TradeCommInfo tradeCommInfo) {
         //账本集
-        List<AccountDeposit> accountDepositList = tradeCommInfo.getAccountDeposits();
+        List<FeeAccountDeposit> feeAccountDepositList = tradeCommInfo.getFeeAccountDeposits();
         //账单集
-        List<Bill> billList = tradeCommInfo.getBills();
+        List<FeeBill> feeBillList = tradeCommInfo.getFeeBills();
 
         //先使用负账本销账
-        for (AccountDeposit accountDeposit : accountDepositList) {
+        for (FeeAccountDeposit feeAccountDeposit : feeAccountDepositList) {
             //被虚拟的账本不参与销帐
-            if ('2' == accountDeposit.getVirtualTag()) {
+            if ('2' == feeAccountDeposit.getVirtualTag()) {
                 continue;
             }
 
             //先销负帐本
-            if (depositServiceImpl.getRemainMoney(accountDeposit) < 0) {
-                for (Bill pBill : billList) {
-                    strikeBalance(tradeCommInfo, accountDeposit, pBill);
+            if (depositCalcServiceImpl.getRemainMoney(feeAccountDeposit) < 0) {
+                for (FeeBill pFeeBill : feeBillList) {
+                    strikeBalance(tradeCommInfo, feeAccountDeposit, pFeeBill);
                 }
             }
         }
 
-        logger.debug("deposits.size = " + accountDepositList.size());
+        logger.debug("deposits.size = " + feeAccountDepositList.size());
 
-        for (AccountDeposit accountDeposit : accountDepositList) {
-            logger.info("acctId= " + accountDeposit.getAcctId() + ",acctBalanceId=" + accountDeposit.getAcctBalanceId());
+        for (FeeAccountDeposit feeAccountDeposit : feeAccountDepositList) {
+            logger.info("acctId= " + feeAccountDeposit.getAcctId() + ",acctBalanceId=" + feeAccountDeposit.getAcctBalanceId());
             //被虚拟的账本不参与销帐
-            if ('2' == accountDeposit.getVirtualTag()) {
+            if ('2' == feeAccountDeposit.getVirtualTag()) {
                 continue;
             }
 
-            for (Bill pBill : billList) {
-                strikeBalance(tradeCommInfo, accountDeposit, pBill);
+            for (FeeBill pFeeBill : feeBillList) {
+                strikeBalance(tradeCommInfo, feeAccountDeposit, pFeeBill);
             }
         }
 
         //查询账单的时候副控制
-        for (Bill pBill : billList) {
-            if (StringUtil.isEmptyCheckNullStr(pBill.getLateCalDate())) {
-                pBill.setLateCalDate("");
+        for (FeeBill pFeeBill : feeBillList) {
+            if (StringUtil.isEmptyCheckNullStr(pFeeBill.getLateCalDate())) {
+                pFeeBill.setLateCalDate("");
             }
         }
     }
 
-    private void strikeBalance(TradeCommInfo tradeCommInfo, AccountDeposit deposit, Bill bill) {
+    private void strikeBalance(TradeCommInfo tradeCommInfo, FeeAccountDeposit deposit, FeeBill feeBill) {
         //已销帐账单不再计算处理
-        if ('1' == bill.getPayTag() || '5' == bill.getPayTag() || '9' == bill.getPayTag()) {
+        if ('1' == feeBill.getPayTag() || '5' == feeBill.getPayTag() || '9' == feeBill.getPayTag()) {
             return;
         }
 
         //如果是私有账本，并且用户ID不相等就不能销账
-        if ('1' == deposit.getPrivateTag() && !bill.getUserId().equals(deposit.getUserId())) {
+        if ('1' == deposit.getPrivateTag() && !feeBill.getUserId().equals(deposit.getUserId())) {
             return;
         }
 
@@ -373,26 +370,26 @@ public class CalculateServiceImpl implements CalculateService {
 
         //不可销往月帐的帐本,有特殊使用关系的返回(月结的时候没有开帐也符合条件)
         if (('0' == deposit.getIfCalcOwe() || '0' != deposit.getLimitMode())
-                && bill.getCycleId() <= writeOffRuleInfo.getMaxAcctCycle().getCycleId()
+                && feeBill.getCycleId() <= writeOffRuleInfo.getMaxAcctCycle().getCycleId()
                 || tradeCommInfo.isAddAccount()
                 && ('0' == deposit.getIfCalcOwe() || '0' != deposit.getLimitMode())
-                && bill.getCycleId() <= TimeUtil.genCycle(
+                && feeBill.getCycleId() <= TimeUtil.genCycle(
                 writeOffRuleInfo.getMaxAcctCycle().getCycleId(), -1)) {
             return;
         }
 
 
         //帐单欠费余额
-        long billBalance = billServiceImpl.getBillBalance(bill);
+        long billBalance = billCalcServiceImpl.getBillBalance(feeBill);
         //如果配置了销负账单的账本则转成指定账本，否则转成优先级最大的账本
         if (writeOffRuleInfo.getNegativeBillDeposit() >= 0
-                && bill.getCanpayTag() != '2' && billBalance < 0
+                && feeBill.getCanpayTag() != '2' && billBalance < 0
                 && deposit.getDepositCode() != writeOffRuleInfo.getNegativeBillDeposit()) {
             return;
         }
 
         //帐本没有余额并且欠费大于0返回.
-        if (depositServiceImpl.getRemainMoney(deposit) == 0 && billBalance > 0) {
+        if (depositCalcServiceImpl.getRemainMoney(deposit) == 0 && billBalance > 0) {
             return;
         }
 
@@ -401,19 +398,19 @@ public class CalculateServiceImpl implements CalculateService {
         if (('0' == deposit.getValidTag() || '3' == deposit.getValidTag())
                 && sysdate.compareTo(deposit.getStartDate()) >= 0
                 && sysdate.compareTo(deposit.getEndDate()) <= 0
-                && bill.getCycleId() >= deposit.getStartCycleId()
-                && bill.getCycleId() <= deposit.getEndCycleId()) {
+                && feeBill.getCycleId() >= deposit.getStartCycleId()
+                && feeBill.getCycleId() <= deposit.getEndCycleId()) {
 
             //校验账本是否可销账目项
-            boolean canPay = depositServiceImpl.canPay(writeOffRuleInfo.getDepositLimitRuleMap(),
-                    deposit.getDepositCode(), bill.getIntegrateItemCode());
+            boolean canPay = depositCalcServiceImpl.canPay(writeOffRuleInfo.getDepositLimitRuleMap(),
+                    deposit.getDepositCode(), feeBill.getIntegrateItemCode());
             if (canPay) {
                 //账单实际销账金额
                 long useFee = 0;
                 //账本销账使用原预存款金额
                 long impFee = 0;
                 //账本销账可用金额
-                long canUseFee = depositServiceImpl.getSimpleCanUseMoney(tradeCommInfo, deposit, bill.getUserId(), bill.getCycleId());
+                long canUseFee = depositCalcServiceImpl.getSimpleCanUseMoney(tradeCommInfo, deposit, feeBill.getUserId(), feeBill.getCycleId());
 
                 //计算账单实际销账金额
                 if (billBalance > canUseFee) {
@@ -437,45 +434,45 @@ public class CalculateServiceImpl implements CalculateService {
                 }
 
                 //剩余本金是否大于使用金额(先销本金后销滞纳金)
-                long leftBalance = bill.getBalance() - bill.getCurrWriteOffBalance();
+                long leftBalance = feeBill.getBalance() - feeBill.getCurrWriteOffBalance();
                 //账目项滞纳金金额
-                long tmpLateFee = bill.getLateBalance() + bill.getNewLateFee() - bill.getDerateFee();
+                long tmpLateFee = feeBill.getLateBalance() + feeBill.getNewLateFee() - feeBill.getDerateFee();
                 //滞纳金剩余未销金额
-                long tmpLeftLateBalance = tmpLateFee - bill.getCurrWriteOffLate();
+                long tmpLeftLateBalance = tmpLateFee - feeBill.getCurrWriteOffLate();
                 // 滞纳金使用金额
                 long lateUse = 0;
                 //该账目完全销账
                 if (useFee == billBalance) {
-                    bill.setCurrWriteOffBalance(bill.getCurrWriteOffBalance() + leftBalance);
+                    feeBill.setCurrWriteOffBalance(feeBill.getCurrWriteOffBalance() + leftBalance);
                     lateUse = useFee - leftBalance;
-                    bill.setCurrWriteOffLate(bill.getCurrWriteOffLate() + lateUse);
+                    feeBill.setCurrWriteOffLate(feeBill.getCurrWriteOffLate() + lateUse);
                 } else if (0 == tmpLeftLateBalance) {
                     //或者没有滞纳金（可能有滞纳金减免)
                     if (leftBalance > useFee) {
-                        bill.setCurrWriteOffBalance(bill.getCurrWriteOffBalance() + useFee);
+                        feeBill.setCurrWriteOffBalance(feeBill.getCurrWriteOffBalance() + useFee);
                     } else {
                         //剩余本金小于 使用金额,必定有滞纳金参与了销帐
-                        bill.setCurrWriteOffBalance(bill.getCurrWriteOffBalance() + leftBalance);
+                        feeBill.setCurrWriteOffBalance(feeBill.getCurrWriteOffBalance() + leftBalance);
                         lateUse = useFee - leftBalance;
-                        bill.setCurrWriteOffLate(bill.getCurrWriteOffLate() + lateUse);
+                        feeBill.setCurrWriteOffLate(feeBill.getCurrWriteOffLate() + lateUse);
                     }
                 } else {
                     //该账目不完全销账,计算拆分比例
-                    double lateRatio = (double) tmpLateFee / (bill.getBalance() + tmpLateFee);
+                    double lateRatio = (double) tmpLateFee / (feeBill.getBalance() + tmpLateFee);
                     lateUse = (long) (useFee * lateRatio);
                     if (lateUse > tmpLeftLateBalance) {
                         lateUse = tmpLeftLateBalance;
                     }
-                    bill.setCurrWriteOffLate(bill.getCurrWriteOffLate() + lateUse);
-                    bill.setCurrWriteOffBalance(bill.getCurrWriteOffBalance() + useFee - lateUse);
+                    feeBill.setCurrWriteOffLate(feeBill.getCurrWriteOffLate() + lateUse);
+                    feeBill.setCurrWriteOffBalance(feeBill.getCurrWriteOffBalance() + useFee - lateUse);
                 }
 
                 //0帐单，或者销帐帐单 产生销帐日志
                 if (useFee != 0 || (billBalance == 0)) {
                     //第一次不生成对象
-                    genWriteOffLogInfo(tradeCommInfo, bill, impFee, (useFee - impFee), lateUse, deposit);
-                    bill.setImpFee(bill.getImpFee() + impFee);
-                    if ('2' == bill.getCanpayTag()) {
+                    genWriteOffLogInfo(tradeCommInfo, feeBill, impFee, (useFee - impFee), lateUse, deposit);
+                    feeBill.setImpFee(feeBill.getImpFee() + impFee);
+                    if ('2' == feeBill.getCanpayTag()) {
                         //冲抵实时话费金额
                         deposit.setImpRealFee(deposit.getImpRealFee() + useFee);
                         deposit.setRealFeeRecv(deposit.getRealFeeRecv() + useFee - impFee);
@@ -483,7 +480,7 @@ public class CalculateServiceImpl implements CalculateService {
 
                     //使用月限额帐本金额
                     if ('1' == deposit.getLimitMode()) {
-                        depositServiceImpl.useLimitFeeDeposit(tradeCommInfo.getCurrLimitFeeDepositLog(), deposit, bill.getUserId(), bill.getCycleId(), useFee, impFee);
+                        depositCalcServiceImpl.useLimitFeeDeposit(tradeCommInfo.getCurrLimitFeeDepositLog(), deposit, feeBill.getUserId(), feeBill.getCycleId(), useFee, impFee);
                     }
                 }
             }
@@ -494,27 +491,27 @@ public class CalculateServiceImpl implements CalculateService {
      * 生成销账日志
      *
      * @param tradeCommInfo
-     * @param bill          本次销账账目
+     * @param feeBill          本次销账账目
      * @param impFee        本次销账使用账本原预存宽金额
      * @param useRecvFee    本次销账使用充值金额
      * @param lateUse       滞纳金销账金额
      * @param deposit       本次销账账本
      */
-    private void genWriteOffLogInfo(TradeCommInfo tradeCommInfo, Bill bill, long impFee, long useRecvFee,
-                                    long lateUse, AccountDeposit deposit) {
+    private void genWriteOffLogInfo(TradeCommInfo tradeCommInfo, FeeBill feeBill, long impFee, long useRecvFee,
+                                    long lateUse, FeeAccountDeposit deposit) {
         //更新账单销账后的状态
-        billServiceImpl.setPayTag(bill);
-        if (CollectionUtils.isEmpty(tradeCommInfo.getWriteOffLogs())) {
-            tradeCommInfo.setWriteOffLogs(new ArrayList<>());
+        billCalcServiceImpl.setPayTag(feeBill);
+        if (CollectionUtils.isEmpty(tradeCommInfo.getFeeWriteOffLogs())) {
+            tradeCommInfo.setFeeWriteOffLogs(new ArrayList<>());
         }
-        List<WriteOffLog> writeOffLogList = tradeCommInfo.getWriteOffLogs();
+        List<FeeWriteOffLog> feeWriteOffLogList = tradeCommInfo.getFeeWriteOffLogs();
 
-        Account account = tradeCommInfo.getAccount();
-        List<AccountDeposit> acctDepositList = tradeCommInfo.getAccountDeposits();
+        FeeAccount feeAccount = tradeCommInfo.getFeeAccount();
+        List<FeeAccountDeposit> feeAccountDepositList = tradeCommInfo.getFeeAccountDeposits();
         //虚拟帐本按比例销帐需要拆分
         if ('1' == deposit.getVirtualTag()) {
             //账本按比例销账实际分摊销账金额
-            Map<String, Long> depositWriteOffFee = genDepositWriteOffFee(acctDepositList, tradeCommInfo.getVirtualRel(),
+            Map<String, Long> depositWriteOffFee = genDepositWriteOffFee(feeAccountDepositList, tradeCommInfo.getVirtualRel(),
                     deposit.getAcctBalanceId(), (impFee + useRecvFee));
             //滞纳金累计销账金额
             long writeOffLateSum = 0;
@@ -528,7 +525,7 @@ public class CalculateServiceImpl implements CalculateService {
                 }
                 //更新账本销账金额信息
                 long tmpImpFee = 0;
-                AccountDeposit refDeposit = depositServiceImpl.getAcctDepositByAcctBalanceId(acctDepositList, acctBalanceId);
+                FeeAccountDeposit refDeposit = depositCalcServiceImpl.getAcctDepositByAcctBalanceId(feeAccountDepositList, acctBalanceId);
                 if ((refDeposit.getMoney() - refDeposit.getImpFee()) > rateFee) {
                     tmpImpFee = rateFee;
                     refDeposit.setImpFee(refDeposit.getImpFee() + rateFee);
@@ -543,7 +540,7 @@ public class CalculateServiceImpl implements CalculateService {
                 }
 
                 //冲抵实时话费金额
-                if ('2' == bill.getCanpayTag()) {
+                if ('2' == feeBill.getCanpayTag()) {
                     refDeposit.setImpRealFee(refDeposit.getImpRealFee() + rateFee);
                     refDeposit.setRealFeeRecv(refDeposit.getRealFeeRecv() + rateFee - tmpImpFee);
                 } else {
@@ -555,7 +552,7 @@ public class CalculateServiceImpl implements CalculateService {
                     continue;
                 }
                 //剩余本金是否大于使用金额(先销本金后销滞纳金)
-                long leftBalance = bill.getBalance() - (bill.getCurrWriteOffBalance() - impFee - useRecvFee + lateUse) - billBalanceSum;
+                long leftBalance = feeBill.getBalance() - (feeBill.getCurrWriteOffBalance() - impFee - useRecvFee + lateUse) - billBalanceSum;
                 long tmpLateUse = 0;
                 //剩余本金是否大于使用金额或者是负账单
                 if ((leftBalance > rateFee) || rateFee < 0) {
@@ -568,14 +565,14 @@ public class CalculateServiceImpl implements CalculateService {
                 writeOffLateSum += tmpLateUse;
 
                 //销账后账单欠费
-                long newBillBlance = bill.getBalance() - (bill.getCurrWriteOffBalance() - impFee - useRecvFee + lateUse) - billBalanceSum;
+                long newBillBlance = feeBill.getBalance() - (feeBill.getCurrWriteOffBalance() - impFee - useRecvFee + lateUse) - billBalanceSum;
                 //销账前账单欠费
                 long oldBillBalance = newBillBlance + rateFee - tmpLateUse;
                 //销账后剩余滞纳金
-                long newLateBalance = bill.getLateBalance() + bill.getNewLateFee() - bill.getDerateFee() - (bill.getCurrWriteOffLate() - lateUse) - writeOffLateSum;
+                long newLateBalance = feeBill.getLateBalance() + feeBill.getNewLateFee() - feeBill.getDerateFee() - (feeBill.getCurrWriteOffLate() - lateUse) - writeOffLateSum;
                 //销账前滞纳金
                 long oldLateBalance = newLateBalance + tmpLateUse;
-                writeOffLogList.add(genWriteOffLog(bill, account, refDeposit, rateFee,
+                feeWriteOffLogList.add(genWriteOffLog(feeBill, feeAccount, refDeposit, rateFee,
                             tmpImpFee, oldBillBalance, newBillBlance, oldLateBalance, newLateBalance));
             }
         } else {
@@ -584,18 +581,18 @@ public class CalculateServiceImpl implements CalculateService {
                 return;
             }
             //在线信控同步充值记录使用
-            if ('2' != bill.getCanpayTag()) {
+            if ('2' != feeBill.getCanpayTag()) {
                 deposit.setWriteOffOweFee(true);
             }
             //销账后账单欠费
-            long newBillBlance = bill.getBalance() - bill.getCurrWriteOffBalance();
+            long newBillBlance = feeBill.getBalance() - feeBill.getCurrWriteOffBalance();
             //销账前账单欠费
             long oldBillBalance = newBillBlance + impFee + useRecvFee - lateUse;
             //销账前滞纳金
-            long oldLateBalance = bill.getLateBalance() + bill.getNewLateFee() - bill.getDerateFee() - bill.getCurrWriteOffLate() + lateUse;
+            long oldLateBalance = feeBill.getLateBalance() + feeBill.getNewLateFee() - feeBill.getDerateFee() - feeBill.getCurrWriteOffLate() + lateUse;
             //销账后剩余滞纳金
             long newLateBalance = oldLateBalance - lateUse;
-            writeOffLogList.add(genWriteOffLog(bill, account, deposit, (impFee + useRecvFee),
+            feeWriteOffLogList.add(genWriteOffLog(feeBill, feeAccount, deposit, (impFee + useRecvFee),
                     impFee, oldBillBalance, newBillBlance, oldLateBalance, newLateBalance));
         }
     }
@@ -603,8 +600,8 @@ public class CalculateServiceImpl implements CalculateService {
     /**
      * 生成销账日志记录
      *
-     * @param bill         本次销账账单
-     * @param account      账户
+     * @param feeBill         本次销账账单
+     * @param feeAccount      账户
      * @param deposit      本次销账账本
      * @param writeOffFee  本次账本总销账金额
      * @param impFee       本次销账使用账本原预存款金额
@@ -614,80 +611,80 @@ public class CalculateServiceImpl implements CalculateService {
      * @param newLateFee   销账后剩余滞纳金
      * @return 销账日志对象
      */
-    private WriteOffLog genWriteOffLog(Bill bill, Account account, AccountDeposit deposit, long writeOffFee,
-                                       long impFee, long oldBalance, long newBalance, long oldLafateFee, long newLateFee) {
-        WriteOffLog writeOffLog = new WriteOffLog();
-        if (StringUtil.isEmptyCheckNullStr(bill.getProvinceCode())) {
-            writeOffLog.setProvinceCode(account.getProvinceCode());
+    private FeeWriteOffLog genWriteOffLog(FeeBill feeBill, FeeAccount feeAccount, FeeAccountDeposit deposit, long writeOffFee,
+                                          long impFee, long oldBalance, long newBalance, long oldLafateFee, long newLateFee) {
+        FeeWriteOffLog feeWriteOffLog = new FeeWriteOffLog();
+        if (StringUtil.isEmptyCheckNullStr(feeBill.getProvinceCode())) {
+            feeWriteOffLog.setProvinceCode(feeAccount.getProvinceCode());
         } else {
-            writeOffLog.setProvinceCode(bill.getProvinceCode());
+            feeWriteOffLog.setProvinceCode(feeBill.getProvinceCode());
         }
 
-        if (StringUtil.isEmptyCheckNullStr(bill.getEparchyCode())) {
-            writeOffLog.setEparchyCode(account.getEparchyCode());
+        if (StringUtil.isEmptyCheckNullStr(feeBill.getEparchyCode())) {
+            feeWriteOffLog.setEparchyCode(feeAccount.getEparchyCode());
         } else {
-            writeOffLog.setEparchyCode(bill.getEparchyCode());
+            feeWriteOffLog.setEparchyCode(feeBill.getEparchyCode());
         }
 
-        if (StringUtil.isEmptyCheckNullStr(bill.getNetTypeCode())) {
-            writeOffLog.setNetTypeCode(account.getNetTypeCode());
+        if (StringUtil.isEmptyCheckNullStr(feeBill.getNetTypeCode())) {
+            feeWriteOffLog.setNetTypeCode(feeAccount.getNetTypeCode());
         } else {
-            writeOffLog.setNetTypeCode(bill.getNetTypeCode());
+            feeWriteOffLog.setNetTypeCode(feeBill.getNetTypeCode());
         }
 
-        writeOffLog.setAreaCode(bill.getRsrvInfo1());
-        writeOffLog.setAcctId(bill.getAcctId());
-        writeOffLog.setUserId(bill.getUserId());
-        writeOffLog.setCycleId(bill.getCycleId());
-        writeOffLog.setBillId(bill.getBillId());
-        writeOffLog.setSerialNumber(bill.getSerialNumber());
-        writeOffLog.setIntegrateItemCode(bill.getIntegrateItemCode());
-        writeOffLog.setOldPaytag(bill.getOldPayTag());
-        writeOffLog.setNewPaytag(bill.getPayTag());
-        writeOffLog.setCanPaytag(bill.getCanpayTag());
-        writeOffLog.setFee(bill.getFee());
-        writeOffLog.setWriteoffFee(writeOffFee);
-        writeOffLog.setImpFee(impFee);
-        writeOffLog.setNewBalance(newBalance);
-        writeOffLog.setOldBalance(oldBalance);
-        writeOffLog.setAcctBalanceId(deposit.getAcctBalanceId());
-        writeOffLog.setDepositCode(deposit.getDepositCode());
-        writeOffLog.setLateFee(bill.getLateFee());
-        writeOffLog.setLateBalance(bill.getLateBalance());
-        writeOffLog.setLatecalDate(bill.getLateCalDate());
+        feeWriteOffLog.setAreaCode(feeBill.getRsrvInfo1());
+        feeWriteOffLog.setAcctId(feeBill.getAcctId());
+        feeWriteOffLog.setUserId(feeBill.getUserId());
+        feeWriteOffLog.setCycleId(feeBill.getCycleId());
+        feeWriteOffLog.setBillId(feeBill.getBillId());
+        feeWriteOffLog.setSerialNumber(feeBill.getSerialNumber());
+        feeWriteOffLog.setIntegrateItemCode(feeBill.getIntegrateItemCode());
+        feeWriteOffLog.setOldPaytag(feeBill.getOldPayTag());
+        feeWriteOffLog.setNewPaytag(feeBill.getPayTag());
+        feeWriteOffLog.setCanPaytag(feeBill.getCanpayTag());
+        feeWriteOffLog.setFee(feeBill.getFee());
+        feeWriteOffLog.setWriteoffFee(writeOffFee);
+        feeWriteOffLog.setImpFee(impFee);
+        feeWriteOffLog.setNewBalance(newBalance);
+        feeWriteOffLog.setOldBalance(oldBalance);
+        feeWriteOffLog.setAcctBalanceId(deposit.getAcctBalanceId());
+        feeWriteOffLog.setDepositCode(deposit.getDepositCode());
+        feeWriteOffLog.setLateFee(feeBill.getLateFee());
+        feeWriteOffLog.setLateBalance(feeBill.getLateBalance());
+        feeWriteOffLog.setLatecalDate(feeBill.getLateCalDate());
         // 本次新增的滞纳金
-        writeOffLog.setNewLateFee(bill.getNewLateFee());
-        writeOffLog.setOldLateBalance(oldLafateFee);
-        writeOffLog.setNewLateBalance(newLateFee);
+        feeWriteOffLog.setNewLateFee(feeBill.getNewLateFee());
+        feeWriteOffLog.setOldLateBalance(oldLafateFee);
+        feeWriteOffLog.setNewLateBalance(newLateFee);
         // 减免滞纳金
-        writeOffLog.setDerateLateFee(bill.getDerateFee());
-        writeOffLog.setCancelTag('0');
-        writeOffLog.setDrecvTimes(1);
-        if (writeOffLog.getCycleId() > 200901) {
+        feeWriteOffLog.setDerateLateFee(feeBill.getDerateFee());
+        feeWriteOffLog.setCancelTag('0');
+        feeWriteOffLog.setDrecvTimes(1);
+        if (feeWriteOffLog.getCycleId() > 200901) {
             //由于老系统的非现金冲抵通过负帐单实现，所以填写writeoffFee1,writeoffFee2的时候不填写。
             if ('2' == deposit.getDepositTypeCode() || '3' == deposit.getDepositTypeCode()) {
                 //普通非现金,特殊非现金(赠款)
-                bill.setWriteoffFee1(bill.getWriteoffFee1() + writeOffLog.getWriteoffFee());
+                feeBill.setWriteoffFee1(feeBill.getWriteoffFee1() + feeWriteOffLog.getWriteoffFee());
             } else if ('1' == deposit.getDepositTypeCode()) {
                 //特殊现金(协议)
-                bill.setWriteoffFee2(bill.getWriteoffFee2() + writeOffLog.getWriteoffFee());
+                feeBill.setWriteoffFee2(feeBill.getWriteoffFee2() + feeWriteOffLog.getWriteoffFee());
             }
 
         }
-        return writeOffLog;
+        return feeWriteOffLog;
     }
 
 
     /**
      * 账本按比例销账做销账金额分摊
      *
-     * @param acctDepositList      账户账本列表
+     * @param feeAccountDepositList      账户账本列表
      * @param virtualRelMap        账本比例关系
      * @param virtualAcctBalanceId 虚拟账本实例标识
      * @param writeOffFee          虚拟账本总销账金额
      * @return 账本实际销账金额
      */
-    private Map<String, Long> genDepositWriteOffFee(List<AccountDeposit> acctDepositList, Map<String, Map<String, Long>> virtualRelMap,
+    private Map<String, Long> genDepositWriteOffFee(List<FeeAccountDeposit> feeAccountDepositList, Map<String, Map<String, Long>> virtualRelMap,
                                                     String virtualAcctBalanceId, long writeOffFee) {
         //账本实际分摊金额
         Map<String, Long> depositWriteOffFee = new TreeMap<>();
@@ -700,15 +697,15 @@ public class CalculateServiceImpl implements CalculateService {
         long factRateFee = 0;
         //acctBalanceId下的小先使用
         for (String acctBalanceId : acctDepositRateMap.keySet()) {
-            AccountDeposit refDeposit = depositServiceImpl.getAcctDepositByAcctBalanceId(acctDepositList, acctBalanceId);
+            FeeAccountDeposit refDeposit = depositCalcServiceImpl.getAcctDepositByAcctBalanceId(feeAccountDepositList, acctBalanceId);
             //账本应该分摊金额
             long tmpUseFee = (long) (writeOffFee * ((double) acctDepositRateMap.get(acctBalanceId) / 100));
             //账本实际销账金额
             long factWriteOffFee = 0;
-            if (depositServiceImpl.getRemainMoney(refDeposit) >= tmpUseFee) {
+            if (depositCalcServiceImpl.getRemainMoney(refDeposit) >= tmpUseFee) {
                 factWriteOffFee = tmpUseFee;
             } else {
-                factWriteOffFee = depositServiceImpl.getRemainMoney(refDeposit);
+                factWriteOffFee = depositCalcServiceImpl.getRemainMoney(refDeposit);
             }
             depositWriteOffFee.put(acctBalanceId, factWriteOffFee);
             factRateFee += factWriteOffFee;
@@ -719,9 +716,9 @@ public class CalculateServiceImpl implements CalculateService {
         if (oddment != 0) {
             //未分摊金额用账本可用预存款再次分摊
             for (String acctBalanceId : depositWriteOffFee.keySet()) {
-                AccountDeposit refDeposit = depositServiceImpl.getAcctDepositByAcctBalanceId(acctDepositList, acctBalanceId);
+                FeeAccountDeposit refDeposit = depositCalcServiceImpl.getAcctDepositByAcctBalanceId(feeAccountDepositList, acctBalanceId);
                 //账本可用金额
-                long tmpLeft = depositServiceImpl.getRemainMoney(refDeposit);
+                long tmpLeft = depositCalcServiceImpl.getRemainMoney(refDeposit);
                 long usedMoney = depositWriteOffFee.get(acctBalanceId) + oddment;
                 if (tmpLeft >= usedMoney) {
                     depositWriteOffFee.put(acctBalanceId, usedMoney);
@@ -748,25 +745,25 @@ public class CalculateServiceImpl implements CalculateService {
      */
     private void genSimpleBalance(TradeCommInfo tradeCommInfo, boolean recvFlag) {
         //销账快照表
-        WriteSnapLog writeSnapLog = tradeCommInfo.getWriteSnapLog();
+        FeeWriteSnapLog feeWriteSnapLog = tradeCommInfo.getFeeWriteSnapLog();
         //账户应缴金额
-        long snapSpayFee = writeSnapLog.getSpayFee();
+        long snapSpayFee = feeWriteSnapLog.getSpayFee();
         //账户原结余
-        long snapAllBalance = writeSnapLog.getAllBalance();
+        long snapAllBalance = feeWriteSnapLog.getAllBalance();
         //快照日志信息初始化
-        writeSnapLog.init();
-        Account account = tradeCommInfo.getAccount();
+        feeWriteSnapLog.init();
+        FeeAccount feeAccount = tradeCommInfo.getFeeAccount();
         User mainUser = tradeCommInfo.getMainUser();
-        List<Bill> billList = tradeCommInfo.getBills();
-        List<AccountDeposit> depositList = tradeCommInfo.getAccountDeposits();
+        List<FeeBill> feeBillList = tradeCommInfo.getFeeBills();
+        List<FeeAccountDeposit> depositList = tradeCommInfo.getFeeAccountDeposits();
         //用户结余对象
-        Map<String, UserBalance> userBalance = genUserBalance(billList, depositList, tradeCommInfo.getPayUsers());
+        Map<String, UserBalance> userBalance = genUserBalance(feeBillList, depositList, tradeCommInfo.getPayUsers());
         WriteOffRuleInfo writeOffRuleInfo = tradeCommInfo.getWriteOffRuleInfo();
         //地市当前账期
         int curCycleId = writeOffRuleInfo.getCurCycle().getCycleId();
 
         //根据账单销账情况，更新用户结余和销账快照信息
-        updateWriteSnapAndUserBalaneInfo(billList, writeSnapLog, userBalance, curCycleId);
+        updateWriteSnapAndUserBalaneInfo(feeBillList, feeWriteSnapLog, userBalance, curCycleId);
 
         //需要考虑，没有最大开张账期的情况下，执行操作不会出问题
         int maxAcctCycleId = writeOffRuleInfo.getMaxAcctCycle().getCycleId();
@@ -784,14 +781,14 @@ public class CalculateServiceImpl implements CalculateService {
         String[] rejectSpeDeposits = null;
         //需要剔除的专项账本金额
         long rejectFee = 0;
-        CommPara commPara = writeOffRuleInfo.getCommpara(ASM_BALAN_BORD);
+        CommPara commPara = writeOffRuleInfo.getCommpara(ActingFeeCommparaDef.ASM_BALAN_BORD);
         if (commPara != null && "1".equals(commPara.getParaCode1())
                 && !StringUtil.isEmptyCheckNullStr(commPara.getParaCode2())) {
             rejectSpeDeposit = true;
             rejectSpeDeposits = commPara.getParaCode2().split("\\|");
         }
 
-        for (AccountDeposit deposit : depositList) {
+        for (FeeAccountDeposit deposit : depositList) {
             //无效的和不能销任何帐本的存折
             boolean unAvialDeposit = false;
             //按用户缴费计算账户公有和缴费用户私有账本，按账户缴费计算全部
@@ -806,10 +803,10 @@ public class CalculateServiceImpl implements CalculateService {
                 //未生效账本不算结余，但是需要按照统一余额播报规则统计余额
                 if ('0' == deposit.getDepositTypeCode() || '1' == deposit.getDepositTypeCode()) {
                     //未生效现金累加到普通冻结预存款
-                    uniBalanceInfo.setFrozenOrdPreFee(uniBalanceInfo.getFrozenOrdPreFee() + depositServiceImpl.getOddEvenMoney(deposit));
+                    uniBalanceInfo.setFrozenOrdPreFee(uniBalanceInfo.getFrozenOrdPreFee() + depositCalcServiceImpl.getOddEvenMoney(deposit));
                 } else {
                     //未生效赠款累加到普通冻结赠款
-                    uniBalanceInfo.setFrozenOrdGrants(uniBalanceInfo.getFrozenOrdGrants() + depositServiceImpl.getOddEvenMoney(deposit));
+                    uniBalanceInfo.setFrozenOrdGrants(uniBalanceInfo.getFrozenOrdGrants() + depositCalcServiceImpl.getOddEvenMoney(deposit));
                 }
                 continue;
             }
@@ -833,7 +830,7 @@ public class CalculateServiceImpl implements CalculateService {
             //过滤无效的和不能销任何帐本的存折
             if (unAvialDeposit && canCalcBalance && deposit.getEndCycleId() >= curCycleId) {
                 //销往月欠费后剩余金额(没有扣减账本冻结金额)
-                long tmpNewMoney = depositServiceImpl.getNewDepositMoney(deposit);
+                long tmpNewMoney = depositCalcServiceImpl.getNewDepositMoney(deposit);
                 if (writeOffRuleInfo.isLimitDeposit(deposit.getDepositCode()) || '1' == deposit.getPrivateTag()) {
                     if ('0' == deposit.getDepositTypeCode() || '1' == deposit.getDepositTypeCode()) {
                         //专项冻结预存款
@@ -858,7 +855,7 @@ public class CalculateServiceImpl implements CalculateService {
                 continue;
             }
             //帐本剩余可用金额
-            long remainMoney = depositServiceImpl.getSimpleLeftMoney(tradeCommInfo, deposit, deposit.getUserId(), maxAcctCycleId, curCycleId);
+            long remainMoney = depositCalcServiceImpl.getSimpleLeftMoney(tradeCommInfo, deposit, deposit.getUserId(), maxAcctCycleId, curCycleId);
             //账本剩余可用金额，后面统计可用余额使用
             deposit.setLeftCanUse(remainMoney);
             //账本缴费前金额
@@ -866,13 +863,13 @@ public class CalculateServiceImpl implements CalculateService {
             //账本缴费后金额
             long newMoney = remainMoney + deposit.getImpRealFee();
             //限额账本扣除可用金额，剩余金额需要纳入冻结款 (例如26账本，账本总金额80，限额50，销账40，剩余30需要纳入冻结款)
-            long limitDepositLeftMoney = depositServiceImpl.getOddEvenMoney(deposit) - remainMoney - deposit.getImpFee() - deposit.getUseRecvFee();
+            long limitDepositLeftMoney = depositCalcServiceImpl.getOddEvenMoney(deposit) - remainMoney - deposit.getImpFee() - deposit.getUseRecvFee();
             if (!writeOffRuleInfo.isCannotUseDeposit(deposit.getDepositCode())) {
-                writeSnapLog.setAllMoney(writeSnapLog.getAllMoney() + oldMoney);
-                writeSnapLog.setAllNewMoney(writeSnapLog.getAllNewMoney() + newMoney);
+                feeWriteSnapLog.setAllMoney(feeWriteSnapLog.getAllMoney() + oldMoney);
+                feeWriteSnapLog.setAllNewMoney(feeWriteSnapLog.getAllNewMoney() + newMoney);
             }
             //账户原预存款销账金额
-            writeSnapLog.setaImpFee(writeSnapLog.getaImpFee() + deposit.getImpFee());
+            feeWriteSnapLog.setaImpFee(feeWriteSnapLog.getaImpFee() + deposit.getImpFee());
 
             //可用账本计算账户余额
             if (canCalcBalance && !writeOffRuleInfo.isCannotUseDeposit(deposit.getDepositCode())) {
@@ -934,7 +931,7 @@ public class CalculateServiceImpl implements CalculateService {
                         }
                     } else {
                         //账户不存在欠费，公有账本可用余额才计入用户结余
-                        if (writeSnapLog.getAllNewBalance() == 0) {
+                        if (feeWriteSnapLog.getAllNewBalance() == 0) {
                             it.getValue().setBalance(it.getValue().getBalance() + remainMoney);
                         }
                     }
@@ -942,7 +939,7 @@ public class CalculateServiceImpl implements CalculateService {
             }
 
             //账户没有欠费，非特殊帐本,并且账本余额算入结余
-            if (writeSnapLog.getAllNewBalance() == 0 && '1' == deposit.getIfBalance() && !specialFlag) {
+            if (feeWriteSnapLog.getAllNewBalance() == 0 && '1' == deposit.getIfBalance() && !specialFlag) {
                 acctNewBalance += remainMoney;
             }
 
@@ -958,12 +955,12 @@ public class CalculateServiceImpl implements CalculateService {
 
         logger.info("缴费后账户结余:" + acctNewBalance);
 
-        if (writeSnapLog.getAllNewBalance() == 0) {
-            writeSnapLog.setAllNewBalance(acctNewBalance);
+        if (feeWriteSnapLog.getAllNewBalance() == 0) {
+            feeWriteSnapLog.setAllNewBalance(acctNewBalance);
         } else {
             //信控模式为1的特殊帐本余额，此类帐本如果有余额，并且有往月欠费,结余＝acctNotCashFee - 往月欠费
             if (acctNewNotCashFee > 0) {
-                writeSnapLog.setAllNewBalance(writeSnapLog.getAllNewBalance() + acctNewNotCashFee);
+                feeWriteSnapLog.setAllNewBalance(feeWriteSnapLog.getAllNewBalance() + acctNewNotCashFee);
             }
         }
 
@@ -972,9 +969,9 @@ public class CalculateServiceImpl implements CalculateService {
         for (Map.Entry<String, UserBalance> it : userBalance.entrySet()) {
             //用户存在往月欠费(实时结余小于0),就设置为帐户余额
             if (it.getValue().getBalance() <= 0 && '1' == it.getValue().getDefaultPay()) {
-                it.getValue().setBalance(writeSnapLog.getAllNewBalance());
+                it.getValue().setBalance(feeWriteSnapLog.getAllNewBalance());
                 //广东托收的用户结余刨除往月欠费，此处应记录账户往月欠费
-                it.getValue().setNewBoweFee(writeSnapLog.getAllNewBOweFee());
+                it.getValue().setNewBoweFee(feeWriteSnapLog.getAllNewBOweFee());
             }
 
             if ('1' == it.getValue().getDefaultPay()) {
@@ -986,43 +983,43 @@ public class CalculateServiceImpl implements CalculateService {
         //如果是非合帐户用户,如果用户结余>0，帐户结余和用户结余一样(不管有没有私有帐本)!
         if(!tradeCommInfo.isOuterCredit()) {
             if (1 == defaultCount && defaultSingleBalance > 0) {
-                writeSnapLog.setAllNewBalance(defaultSingleBalance);
+                feeWriteSnapLog.setAllNewBalance(defaultSingleBalance);
             }
         }
 
-        logger.info("缴费销账快照入库实际结余:" + writeSnapLog.getAllNewBalance());
+        logger.info("缴费销账快照入库实际结余:" + feeWriteSnapLog.getAllNewBalance());
 
         //缴费模式
         if (recvFlag) {
-            writeSnapLog.setAllBalance(snapAllBalance);
-            writeSnapLog.setSpayFee(snapSpayFee);
+            feeWriteSnapLog.setAllBalance(snapAllBalance);
+            feeWriteSnapLog.setSpayFee(snapSpayFee);
         } else {
             //欠费查询模式
-            writeSnapLog.setAllBalance(writeSnapLog.getAllNewBalance());
-            if (writeSnapLog.getAllBalance() < 0) {
-                writeSnapLog.setSpayFee(-writeSnapLog.getAllBalance());
+            feeWriteSnapLog.setAllBalance(feeWriteSnapLog.getAllNewBalance());
+            if (feeWriteSnapLog.getAllBalance() < 0) {
+                feeWriteSnapLog.setSpayFee(-feeWriteSnapLog.getAllBalance());
             } else {
-                writeSnapLog.setSpayFee(0);
+                feeWriteSnapLog.setSpayFee(0);
             }
         }
 
         //设置账户当前可用余额
         if (rejectSpeDeposit) {
-            if (writeSnapLog.getAllNewBalance() > 0) {
-                writeSnapLog.setCurrentAvlFee(writeSnapLog.getAllNewBalance() - rejectFee);
+            if (feeWriteSnapLog.getAllNewBalance() > 0) {
+                feeWriteSnapLog.setCurrentAvlFee(feeWriteSnapLog.getAllNewBalance() - rejectFee);
             } else {
-                writeSnapLog.setCurrentAvlFee(writeSnapLog.getAllNewBalance());
+                feeWriteSnapLog.setCurrentAvlFee(feeWriteSnapLog.getAllNewBalance());
             }
         } else {
-            writeSnapLog.setCurrentAvlFee(writeSnapLog.getAllNewBalance());
+            feeWriteSnapLog.setCurrentAvlFee(feeWriteSnapLog.getAllNewBalance());
         }
 
-        logger.info("账户当前可用余额:" + writeSnapLog.getCurrentAvlFee());
+        logger.info("账户当前可用余额:" + feeWriteSnapLog.getCurrentAvlFee());
 
-        writeSnapLog.setAcctId(account.getAcctId());
-        writeSnapLog.setProvinceCode(account.getProvinceCode());
-        writeSnapLog.setEparchyCode(account.getEparchyCode());
-        logger.debug("销账快照数据: " + writeSnapLog.toString());
+        feeWriteSnapLog.setAcctId(feeAccount.getAcctId());
+        feeWriteSnapLog.setProvinceCode(feeAccount.getProvinceCode());
+        feeWriteSnapLog.setEparchyCode(feeAccount.getEparchyCode());
+        logger.debug("销账快照数据: " + feeWriteSnapLog.toString());
 
         //设置抵扣后帐本往月欠费,供库外信控使用
         if (tradeCommInfo.isOuterCredit()) {
@@ -1030,7 +1027,7 @@ public class CalculateServiceImpl implements CalculateService {
             int maxOpenCycleId = -1;
             //用户最大开张帐期列表
             Map<String, Integer> maxUserOpenCycleId = new HashMap<>();
-            for (AccountDeposit deposit : depositList) {
+            for (FeeAccountDeposit deposit : depositList) {
                 //过滤无效的账本，无效的账本可能oweFee不准
                 if (sysdate.compareTo(deposit.getEndDate()) > 0) {
                     continue;
@@ -1094,19 +1091,19 @@ public class CalculateServiceImpl implements CalculateService {
             }
         }
 
-        for (AccountDeposit accountDeposit : depositList) {
+        for (FeeAccountDeposit feeAccountDeposit : depositList) {
             //保存原来的往月欠费给库外信控使用
-            accountDeposit.setOweFee(writeSnapLog.getAllNewBOweFee());
+            feeAccountDeposit.setOweFee(feeWriteSnapLog.getAllNewBOweFee());
             //用户结余大于0，私有账本往月欠费为0
-            if ('1' == accountDeposit.getPrivateTag() && userBalance.containsKey(accountDeposit.getUserId())
-                    && userBalance.get(accountDeposit.getUserId()).getBalance() >= 0) {
-                accountDeposit.setOweFee(0);
+            if ('1' == feeAccountDeposit.getPrivateTag() && userBalance.containsKey(feeAccountDeposit.getUserId())
+                    && userBalance.get(feeAccountDeposit.getUserId()).getBalance() >= 0) {
+                feeAccountDeposit.setOweFee(0);
             }
         }
 
         //广东托收用户参与实时信控,往月欠费不计入用户结余
-        CommPara consignCommPara = writeOffRuleInfo.getCommpara(ASM_CONSIGN_USERBALANCE);
-        String payMode = "|" + account.getPayModeCode() + "|";
+        CommPara consignCommPara = writeOffRuleInfo.getCommpara(ActingFeeCommparaDef.ASM_CONSIGN_USERBALANCE);
+        String payMode = "|" + feeAccount.getPayModeCode() + "|";
         if (consignCommPara != null && "1".equals(consignCommPara.getParaCode1())
                 && !StringUtil.isEmptyCheckNullStr(consignCommPara.getParaCode2())
                 && consignCommPara.getParaCode2().contains(payMode)) {
@@ -1124,32 +1121,32 @@ public class CalculateServiceImpl implements CalculateService {
     /**
      * 根据账单，账本和付费用户生成用户结余列表
      *
-     * @param billList
+     * @param feeBillList
      * @param depositList
      * @param userList
      * @return
      */
-    private Map<String, UserBalance> genUserBalance(List<Bill> billList, List<AccountDeposit> depositList, List<User> userList) {
+    private Map<String, UserBalance> genUserBalance(List<FeeBill> feeBillList, List<FeeAccountDeposit> depositList, List<User> userList) {
         Map<String, UserBalance> userBalance = new HashMap<>();
         //根据账单生成用户结余对象
-        if (!CollectionUtils.isEmpty(billList)) {
-            for (Bill pBill : billList) {
-                if (pBill.getUserId().length() > 2
-                        && !userBalance.containsKey(pBill.getUserId())) {
+        if (!CollectionUtils.isEmpty(feeBillList)) {
+            for (FeeBill pFeeBill : feeBillList) {
+                if (pFeeBill.getUserId().length() > 2
+                        && !userBalance.containsKey(pFeeBill.getUserId())) {
                     UserBalance tmp = new UserBalance();
-                    userBalance.put(pBill.getUserId(), tmp);
+                    userBalance.put(pFeeBill.getUserId(), tmp);
                 }
             }
         }
 
         //根据账本生成用户结余对象
         if (!CollectionUtils.isEmpty(depositList)) {
-            for (AccountDeposit accountDeposit : depositList) {
-                if ('1' == accountDeposit.getPrivateTag()
-                        && accountDeposit.getUserId().length() > 2
-                        && !userBalance.containsKey(accountDeposit.getUserId())) {
+            for (FeeAccountDeposit feeAccountDeposit : depositList) {
+                if ('1' == feeAccountDeposit.getPrivateTag()
+                        && feeAccountDeposit.getUserId().length() > 2
+                        && !userBalance.containsKey(feeAccountDeposit.getUserId())) {
                     UserBalance tmp = new UserBalance();
-                    userBalance.put(accountDeposit.getUserId(), tmp);
+                    userBalance.put(feeAccountDeposit.getUserId(), tmp);
                 }
             }
         }
@@ -1170,33 +1167,33 @@ public class CalculateServiceImpl implements CalculateService {
     }
 
 
-    private void updateWriteSnapAndUserBalaneInfo(List<Bill> billList, WriteSnapLog writeSnapLog, Map<String, UserBalance> userBalance, int curCycleId) {
+    private void updateWriteSnapAndUserBalaneInfo(List<FeeBill> feeBillList, FeeWriteSnapLog feeWriteSnapLog, Map<String, UserBalance> userBalance, int curCycleId) {
         //缴费前账户欠费之和
         long oldOweFee = 0;
         //缴费后账户欠费之和
         long nowOweFee = 0;
         //设置用户欠费信息
-        if (!CollectionUtils.isEmpty(billList)) {
-            for (Bill pBill : billList) {
+        if (!CollectionUtils.isEmpty(feeBillList)) {
+            for (FeeBill pFeeBill : feeBillList) {
                 //原始帐单欠费
-                long oldBillBalance = billServiceImpl.getOldBillBalance(pBill);
+                long oldBillBalance = billCalcServiceImpl.getOldBillBalance(pFeeBill);
                 //销账后账单欠费
-                long billBalance = billServiceImpl.getBillBalance(pBill);
+                long billBalance = billCalcServiceImpl.getBillBalance(pFeeBill);
 
                 //设置销账快照表中欠费和实时费用值
-                if ('2' == pBill.getCanpayTag()) {
-                    if (pBill.getCycleId() == curCycleId) {
+                if ('2' == pFeeBill.getCanpayTag()) {
+                    if (pFeeBill.getCycleId() == curCycleId) {
                         //当月实时账单
-                        writeSnapLog.setCurRealFee(writeSnapLog.getCurRealFee() + oldBillBalance);
+                        feeWriteSnapLog.setCurRealFee(feeWriteSnapLog.getCurRealFee() + oldBillBalance);
                     } else {
                         //往月实时账单
-                        writeSnapLog.setPreRealFee(writeSnapLog.getPreRealFee() + oldBillBalance);
+                        feeWriteSnapLog.setPreRealFee(feeWriteSnapLog.getPreRealFee() + oldBillBalance);
                     }
                 } else {
                     //销账前欠费结余
-                    writeSnapLog.setAllBOweFee(writeSnapLog.getAllBOweFee() + oldBillBalance);
+                    feeWriteSnapLog.setAllBOweFee(feeWriteSnapLog.getAllBOweFee() + oldBillBalance);
                     //销账后欠费结余
-                    writeSnapLog.setAllNewBOweFee(writeSnapLog.getAllNewBOweFee() + billBalance);
+                    feeWriteSnapLog.setAllNewBOweFee(feeWriteSnapLog.getAllNewBOweFee() + billBalance);
                 }
 
                 //冲抵前不算欠费帐目金额
@@ -1204,45 +1201,45 @@ public class CalculateServiceImpl implements CalculateService {
                 //冲抵后不算欠费帐目金额
                 long nowNotOwe = 0;
                 //不算欠费的账目项
-                if (!WriteOffRuleStaticInfo.isOweItem(pBill.getIntegrateItemCode())) {
-                    oldNotOwe = oldBillBalance - pBill.getImpFee();
+                if (!WriteOffRuleStaticInfo.isOweItem(pFeeBill.getIntegrateItemCode())) {
+                    oldNotOwe = oldBillBalance - pFeeBill.getImpFee();
                     nowNotOwe = billBalance;
                 }
 
-                if (userBalance.containsKey(pBill.getUserId())) {
-                    UserBalance tmpUseBalance = userBalance.get(pBill.getUserId());
+                if (userBalance.containsKey(pFeeBill.getUserId())) {
+                    UserBalance tmpUseBalance = userBalance.get(pFeeBill.getUserId());
                     if ('1' == tmpUseBalance.getDefaultPay()) {
                         //设置剩余欠费
                         tmpUseBalance.setOweFee(tmpUseBalance.getOweFee() + billBalance - nowNotOwe);
                         //设置结余
                         tmpUseBalance.setBalance(tmpUseBalance.getBalance() - (billBalance - nowNotOwe));
                         //设置剩余往月欠费
-                        if ('2' != pBill.getCanpayTag()) {
+                        if ('2' != pFeeBill.getCanpayTag()) {
                             tmpUseBalance.setNewBoweFee(tmpUseBalance.getNewBoweFee() + billBalance - nowNotOwe);
                         }
                     }
                 }
-                oldOweFee += -(oldBillBalance - pBill.getImpFee() - oldNotOwe);
+                oldOweFee += -(oldBillBalance - pFeeBill.getImpFee() - oldNotOwe);
                 nowOweFee += -(billBalance - nowNotOwe);
             }
         }
 
         //原实时结余
         if (oldOweFee < 0) {
-            writeSnapLog.setAllBalance(oldOweFee);
+            feeWriteSnapLog.setAllBalance(oldOweFee);
         }
 
         //现实时结余
         if (nowOweFee < 0) {
-            writeSnapLog.setAllNewBalance(nowOweFee);
+            feeWriteSnapLog.setAllNewBalance(nowOweFee);
         }
     }
 
     //清除数据
     private void regressData(TradeCommInfo tradeCommInfo) {
         //清除本次日志
-        if (!CollectionUtils.isEmpty(tradeCommInfo.getWriteOffLogs())) {
-            tradeCommInfo.getWriteOffLogs().clear();
+        if (!CollectionUtils.isEmpty(tradeCommInfo.getFeeWriteOffLogs())) {
+            tradeCommInfo.getFeeWriteOffLogs().clear();
         }
 
         if (!CollectionUtils.isEmpty(tradeCommInfo.getCurrLimitFeeDepositLog())) {
@@ -1253,21 +1250,21 @@ public class CalculateServiceImpl implements CalculateService {
         if (!CollectionUtils.isEmpty(tradeCommInfo.getUserBalance())) {
             tradeCommInfo.getUserBalance().clear();
         }
-        depositServiceImpl.regressData(tradeCommInfo.getAccountDeposits());
-        billServiceImpl.regressData(tradeCommInfo.getBills());
+        depositCalcServiceImpl.regressData(tradeCommInfo.getFeeAccountDeposits());
+        billCalcServiceImpl.regressData(tradeCommInfo.getFeeBills());
     }
 
     //更新滞纳金金额
-    private void decLateFee(List<Bill> bills) {
-        if (CollectionUtils.isEmpty(bills)) {
+    private void decLateFee(List<FeeBill> feeBills) {
+        if (CollectionUtils.isEmpty(feeBills)) {
             return;
         }
 
-        for (Bill pBill : bills) {
+        for (FeeBill pFeeBill : feeBills) {
             //实时账单过滤
-            if (pBill.getCanpayTag() != '2') {
+            if (pFeeBill.getCanpayTag() != '2') {
                 //本次实际产生的滞纳金
-                pBill.setNewLateFee(pBill.getCurrWriteOffLate() + (pBill.getDerateFee() - pBill.getLateBalance()));
+                pFeeBill.setNewLateFee(pFeeBill.getCurrWriteOffLate() + (pFeeBill.getDerateFee() - pFeeBill.getLateBalance()));
             }
         }
     }
@@ -1291,12 +1288,12 @@ public class CalculateServiceImpl implements CalculateService {
         if(tradeCommInfo.isOuterCredit()) {
             return 0;
         }
-        if (CollectionUtils.isEmpty(tradeCommInfo.getDerateLateFeeLogs())) {
+        if (CollectionUtils.isEmpty(tradeCommInfo.getFeeDerateLateFeeLogs())) {
             return 0;
         }
         long derateFee = 0;
-        DerateLateFeeLog derateLog = getDerateLateFeeLog(
-                tradeCommInfo.getDerateLateFeeLogs(), acctId, cycleId);
+        FeeDerateLateFeeLog derateLog = getDerateLateFeeLog(
+                tradeCommInfo.getFeeDerateLateFeeLogs(), acctId, cycleId);
         if (derateLog == null) {
             return 0;
         }
@@ -1327,13 +1324,13 @@ public class CalculateServiceImpl implements CalculateService {
         return derateFee;
     }
 
-    private DerateLateFeeLog getDerateLateFeeLog(List<DerateLateFeeLog> derateLateFeeLogs, String acctId, int cycleId) {
-        if (CollectionUtils.isEmpty(derateLateFeeLogs)) {
+    private FeeDerateLateFeeLog getDerateLateFeeLog(List<FeeDerateLateFeeLog> feeDerateLateFeeLogs, String acctId, int cycleId) {
+        if (CollectionUtils.isEmpty(feeDerateLateFeeLogs)) {
             return null;
         }
-        for (DerateLateFeeLog derateLateFeeLog : derateLateFeeLogs) {
-            if (acctId.equals(derateLateFeeLog.getAcctId()) && cycleId == derateLateFeeLog.getCycleId()) {
-                return derateLateFeeLog;
+        for (FeeDerateLateFeeLog feeDerateLateFeeLog : feeDerateLateFeeLogs) {
+            if (acctId.equals(feeDerateLateFeeLog.getAcctId()) && cycleId == feeDerateLateFeeLog.getCycleId()) {
+                return feeDerateLateFeeLog;
             }
         }
         return null;
@@ -1341,97 +1338,97 @@ public class CalculateServiceImpl implements CalculateService {
 
     //生成存取款日志
     private void genAccessLog(TradeCommInfo tradeCommInfo) {
-        Account account = tradeCommInfo.getAccount();
-        List<AccountDeposit> depositList = tradeCommInfo.getAccountDeposits();
-        List<AccessLog> accessLogList = new ArrayList<>();
+        FeeAccount feeAccount = tradeCommInfo.getFeeAccount();
+        List<FeeAccountDeposit> depositList = tradeCommInfo.getFeeAccountDeposits();
+        List<FeeAccessLog> feeAccessLogList = new ArrayList<>();
         Map<String, Long> invoiceFee = tradeCommInfo.getInvoiceFeeMap();
 
-        for (AccountDeposit deposit : depositList) {
+        for (FeeAccountDeposit deposit : depositList) {
             if (deposit.getRecvFee() != 0 || deposit.getIfInAccesslog() == '1') {
-                AccessLog accessLog = new AccessLog();
-                accessLog.setProvinceCode(account.getProvinceCode());
-                accessLog.setEparchyCode(account.getEparchyCode());
-                accessLog.setAcctId(deposit.getAcctId());
-                accessLog.setAcctBalanceId(deposit.getAcctBalanceId());
-                accessLog.setDepositCode(deposit.getDepositCode());
-                accessLog.setOldBalance(deposit.getMoney());
-                accessLog.setMoney(deposit.getRecvFee());
-                accessLog.setNewBalance(accessLog.getOldBalance() + deposit.getRecvFee());
-                accessLog.setAccessTag(deposit.getRecvFee() >= 0 ? '0' : '1');
+                FeeAccessLog feeAccessLog = new FeeAccessLog();
+                feeAccessLog.setProvinceCode(feeAccount.getProvinceCode());
+                feeAccessLog.setEparchyCode(feeAccount.getEparchyCode());
+                feeAccessLog.setAcctId(deposit.getAcctId());
+                feeAccessLog.setAcctBalanceId(deposit.getAcctBalanceId());
+                feeAccessLog.setDepositCode(deposit.getDepositCode());
+                feeAccessLog.setOldBalance(deposit.getMoney());
+                feeAccessLog.setMoney(deposit.getRecvFee());
+                feeAccessLog.setNewBalance(feeAccessLog.getOldBalance() + deposit.getRecvFee());
+                feeAccessLog.setAccessTag(deposit.getRecvFee() >= 0 ? '0' : '1');
                 // 本次发票金额
-                if (!CollectionUtils.isEmpty(invoiceFee) && invoiceFee.containsKey(accessLog.getAcctBalanceId())) {
-                    accessLog.setInvoiceFee(invoiceFee.get(accessLog.getAcctBalanceId()));
+                if (!CollectionUtils.isEmpty(invoiceFee) && invoiceFee.containsKey(feeAccessLog.getAcctBalanceId())) {
+                    feeAccessLog.setInvoiceFee(invoiceFee.get(feeAccessLog.getAcctBalanceId()));
                 }
-                accessLog.setCurTag('1'); // 本次缴费触发相关标志
-                accessLog.setCancelTag('0');
-                accessLogList.add(accessLog);
+                feeAccessLog.setCurTag('1'); // 本次缴费触发相关标志
+                feeAccessLog.setCancelTag('0');
+                feeAccessLogList.add(feeAccessLog);
             }
         }
 
-        for (AccountDeposit deposit : depositList) {
+        for (FeeAccountDeposit deposit : depositList) {
             if (deposit.getUseRecvFee() != 0 || deposit.getImpFee() != 0 || deposit.getImpRealFee() != 0) {
                 //判断pAcctdeposit.impRealFee != 0的原因可能有往月负账单发生了销账，并且转换为预存冲抵了实时话费，需要转化为预存
-                AccessLog accessLog = new AccessLog();
-                accessLog.setProvinceCode(account.getProvinceCode());
-                accessLog.setEparchyCode(account.getEparchyCode());
-                accessLog.setAcctId(deposit.getAcctId());
-                accessLog.setAcctBalanceId(deposit.getAcctBalanceId());
-                accessLog.setDepositCode(deposit.getDepositCode());
-                accessLog.setOldBalance(deposit.getMoney() + deposit.getRecvFee());
+                FeeAccessLog feeAccessLog = new FeeAccessLog();
+                feeAccessLog.setProvinceCode(feeAccount.getProvinceCode());
+                feeAccessLog.setEparchyCode(feeAccount.getEparchyCode());
+                feeAccessLog.setAcctId(deposit.getAcctId());
+                feeAccessLog.setAcctBalanceId(deposit.getAcctBalanceId());
+                feeAccessLog.setDepositCode(deposit.getDepositCode());
+                feeAccessLog.setOldBalance(deposit.getMoney() + deposit.getRecvFee());
                 long tmpMoney = deposit.getUseRecvFee() + deposit.getImpFee() - deposit.getImpRealFee();
-                accessLog.setMoney(-tmpMoney);
-                accessLog.setNewBalance(accessLog.getOldBalance() - tmpMoney);
+                feeAccessLog.setMoney(-tmpMoney);
+                feeAccessLog.setNewBalance(feeAccessLog.getOldBalance() - tmpMoney);
                 //帐本销账
-                accessLog.setAccessTag('2');
+                feeAccessLog.setAccessTag('2');
                 //销帐标志
-                accessLog.setCurTag('0');
-                accessLog.setCancelTag('0');
-                if (accessLog.getMoney() != 0) {
-                    accessLogList.add(accessLog);
+                feeAccessLog.setCurTag('0');
+                feeAccessLog.setCancelTag('0');
+                if (feeAccessLog.getMoney() != 0) {
+                    feeAccessLogList.add(feeAccessLog);
                 }
             }
         }
 
-        List<WriteOffLog> writeOffLogs = tradeCommInfo.getWriteOffLogs();
-        if (accessLogList.isEmpty() && !CollectionUtils.isEmpty(writeOffLogs)) {
+        List<FeeWriteOffLog> feeWriteOffLogs = tradeCommInfo.getFeeWriteOffLogs();
+        if (feeAccessLogList.isEmpty() && !CollectionUtils.isEmpty(feeWriteOffLogs)) {
             //0帐单参与了销帐,需要补
-            for (int i = 0; i < writeOffLogs.size(); ++i) {
+            for (int i = 0; i < feeWriteOffLogs.size(); ++i) {
                 int k = 0;
-                for (; k < accessLogList.size(); k++) {
-                    if (writeOffLogs.get(i).getAcctBalanceId().equals(accessLogList.get(k).getAcctBalanceId())) {
+                for (; k < feeAccessLogList.size(); k++) {
+                    if (feeWriteOffLogs.get(i).getAcctBalanceId().equals(feeAccessLogList.get(k).getAcctBalanceId())) {
                         break;
                     }
                 }
 
-                if (k == accessLogList.size()) {
-                    AccessLog accessLog = new AccessLog();
-                    accessLog.setProvinceCode(account.getProvinceCode());
-                    accessLog.setEparchyCode(account.getEparchyCode());
+                if (k == feeAccessLogList.size()) {
+                    FeeAccessLog feeAccessLog = new FeeAccessLog();
+                    feeAccessLog.setProvinceCode(feeAccount.getProvinceCode());
+                    feeAccessLog.setEparchyCode(feeAccount.getEparchyCode());
 
                     int j = 0;
                     for (; j < depositList.size(); ++j) {
-                        if (writeOffLogs.get(i).getAcctBalanceId().equals(depositList.get(j).getAcctBalanceId())) {
+                        if (feeWriteOffLogs.get(i).getAcctBalanceId().equals(depositList.get(j).getAcctBalanceId())) {
                             break;
                         }
                     }
 
                     if (j == depositList.size()) {
-                        throw new SkyArkException("销0帐单发生错误!acctBalanceId=" + writeOffLogs.get(i).getAcctBalanceId());
+                        throw new SkyArkException("销0帐单发生错误!acctBalanceId=" + feeWriteOffLogs.get(i).getAcctBalanceId());
                     }
-                    accessLog.setAcctId(depositList.get(j).getAcctId());
-                    accessLog.setAcctBalanceId(depositList.get(j).getAcctBalanceId());
-                    accessLog.setDepositCode(depositList.get(j).getDepositCode());
-                    accessLog.setOldBalance(depositList.get(j).getMoney());
-                    accessLog.setMoney(0);
-                    accessLog.setNewBalance(accessLog.getOldBalance());
-                    accessLog.setAccessTag('2');
+                    feeAccessLog.setAcctId(depositList.get(j).getAcctId());
+                    feeAccessLog.setAcctBalanceId(depositList.get(j).getAcctBalanceId());
+                    feeAccessLog.setDepositCode(depositList.get(j).getDepositCode());
+                    feeAccessLog.setOldBalance(depositList.get(j).getMoney());
+                    feeAccessLog.setMoney(0);
+                    feeAccessLog.setNewBalance(feeAccessLog.getOldBalance());
+                    feeAccessLog.setAccessTag('2');
                     // 销帐标志
-                    accessLog.setCurTag('0');
-                    accessLog.setCancelTag('0');
-                    accessLogList.add(accessLog);
+                    feeAccessLog.setCurTag('0');
+                    feeAccessLog.setCancelTag('0');
+                    feeAccessLogList.add(feeAccessLog);
                 }
             }
         }
-        tradeCommInfo.setAccesslogs(accessLogList);
+        tradeCommInfo.setAccesslogs(feeAccessLogList);
     }
 }

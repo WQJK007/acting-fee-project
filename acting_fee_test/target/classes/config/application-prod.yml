@@ -1,0 +1,265 @@
+server:
+  port: 8080
+  tomcat:
+    max-threads: 2000
+jdbc:
+    enable: true
+    type: oracle
+spring:
+    cache:
+        type: redis
+    redis:
+        cluster:
+            nodes:
+            - 10.161.67.220:9000
+            - 10.161.67.222:9007
+            - 10.161.67.220:9001
+            - 10.161.67.221:9003
+            - 10.161.67.221:9005
+            - 10.161.67.220:9002
+            - 10.161.67.222:9006
+            - 10.161.67.221:9004
+        pool:
+            max-active: 100
+            max-wait: -1
+            max-idle: 100
+            min-idle: 50
+        timeout: 2000
+
+redis:
+    cache:
+        defaultExpiration: 300
+        expires:
+          - cacheKey: CBSS_QAM_COMMPARA
+            cacheExpire: 36000
+logs:
+  svcperform:
+    enable: true
+    printResult: true
+hystrix:
+  threadpool:
+    default:
+      coreSize: 200
+      maxQueueSize: 300
+      queueSizeRejectionThreshold: 100
+  command:
+    default:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 4000
+      fallback:
+        isolation:
+          semaphore:
+            maxConcurrentRequests: 1000
+
+qam:
+  httpclient:
+    rests:
+      - domain: accounting
+        ip: marathon-lb-internal.marathon.mesos
+        readTimeout: 4000
+        maxTotal: 200
+        defaultMaxPerRoute: 200
+  datasource:
+    jdbcs:
+      - name: ds_act_uop_act1
+        url: jdbc:oracle:thin:@(DESCRIPTION =
+                                 (ADDRESS_LIST =
+                                   (LOAD_BALANCE=Off)
+                                   (FAILOVER=ON)
+                                   (ADDRESS = (PROTOCOL = TCP)(HOST = 10.161.2.43)(PORT = 1621))
+                                   (ADDRESS = (PROTOCOL = TCP)(HOST = 10.161.2.44)(PORT = 1621))
+                                 )
+                                 (CONNECT_DATA =
+                                   (SERVICE_NAME = act1)
+                                   (FAILOVER_MODE =
+                                     (TYPE = SELECT)
+                                     (METHOD = BASIC)
+                                   )
+                                 )
+                               )
+        username: UOP_ACT1
+        password: TvKGpy_4
+        driverClassName: oracle.jdbc.driver.OracleDriver
+        provinces: 11,34,86,38,95,ZZZZ
+        initialSize: 1
+        maxActive: 20
+        minIdle: 1
+        maxPoolPreparedStatementPerConnectionSize: 200
+        maxWait: 4000
+      - name: ds_act_uop_act2
+        url: jdbc:oracle:thin:@(DESCRIPTION =
+                                 (ADDRESS_LIST =
+                                   (LOAD_BALANCE=Off)
+                                   (FAILOVER=ON)
+                                   (ADDRESS = (PROTOCOL = TCP)(HOST = 10.161.2.210)(PORT = 1621))
+                                   (ADDRESS = (PROTOCOL = TCP)(HOST = 10.161.2.211)(PORT = 1621))
+                                 )
+                                 (CONNECT_DATA =
+                                   (SERVICE_NAME = act2)
+                                   (FAILOVER_MODE =
+                                     (TYPE = SELECT)
+                                     (METHOD = BASIC)
+                                   )
+                                 )
+                               )
+        username: UOP_ACT2
+        password: VEhTwQ_7
+        driverClassName: oracle.jdbc.driver.OracleDriver
+        provinces: 97,13,36,31,87
+        initialSize: 1
+        maxActive: 20
+        minIdle: 1
+        maxPoolPreparedStatementPerConnectionSize: 200
+        maxWait: 4000
+      - name: ds_act_uop_act3
+        url: jdbc:oracle:thin:@(DESCRIPTION =
+                                   (ADDRESS_LIST =
+                                     (LOAD_BALANCE=Off)
+                                     (FAILOVER=ON)
+                                     (ADDRESS = (PROTOCOL = TCP)(HOST = 10.161.2.48)(PORT = 1621))
+                                     (ADDRESS = (PROTOCOL = TCP)(HOST = 10.161.2.49)(PORT = 1621))
+                                   )
+                                   (CONNECT_DATA =
+                                     (SERVICE_NAME = act3)
+                                     (FAILOVER_MODE =
+                                       (TYPE = SELECT)
+                                       (METHOD = BASIC)
+                                     )
+                                   )
+                                 )
+        username: UOP_ACT3
+        password: igVhNS_7
+        driverClassName: oracle.jdbc.driver.OracleDriver
+        provinces: 59,51,79,81
+        initialSize: 1
+        maxActive: 20
+        minIdle: 1
+        maxPoolPreparedStatementPerConnectionSize: 200
+        maxWait: 4000
+      - name: ds_act_uop_act4
+        url: jdbc:oracle:thin:@(DESCRIPTION =
+                                   (ADDRESS_LIST =
+                                     (LOAD_BALANCE=Off)
+                                     (FAILOVER=ON)
+                                     (ADDRESS = (PROTOCOL = TCP)(HOST = 10.161.2.203)(PORT = 1621))
+                                     (ADDRESS = (PROTOCOL = TCP)(HOST = 10.161.2.213)(PORT = 1621))
+                                   )
+                                   (CONNECT_DATA =
+                                     (SERVICE_NAME = act4)
+                                     (FAILOVER_MODE =
+                                       (TYPE = SELECT)
+                                       (METHOD = BASIC)
+                                     )
+                                   )
+                                 )
+        username: UOP_ACT4
+        password: SzmsYy_5
+        driverClassName: oracle.jdbc.driver.OracleDriver
+        provinces: 91,75,89,74
+        initialSize: 1
+        maxActive: 20
+        minIdle: 1
+        maxPoolPreparedStatementPerConnectionSize: 200
+        maxWait: 4000
+      - name: ds_act_uop_act5
+        url: jdbc:oracle:thin:@(DESCRIPTION =
+                                   (ADDRESS_LIST =
+                                     (LOAD_BALANCE=Off)
+                                     (FAILOVER=ON)
+                                     (ADDRESS = (PROTOCOL = TCP)(HOST = 10.161.2.53)(PORT = 1621))
+                                     (ADDRESS = (PROTOCOL = TCP)(HOST = 10.161.2.54)(PORT = 1621))
+                                   )
+                                   (CONNECT_DATA =
+                                     (SERVICE_NAME = act5)
+                                     (FAILOVER_MODE =
+                                       (TYPE = SELECT)
+                                       (METHOD = BASIC)
+                                     )
+                                   )
+                                 )
+        username: UOP_ACT5
+        password: mUpnxV_2
+        driverClassName: oracle.jdbc.driver.OracleDriver
+        provinces: 76,10,88,85
+        initialSize: 1
+        maxActive: 20
+        minIdle: 1
+        maxPoolPreparedStatementPerConnectionSize: 200
+        maxWait: 4000
+      - name: ds_act_uop_act6
+        url: jdbc:oracle:thin:@(DESCRIPTION =
+                                   (ADDRESS_LIST =
+                                     (LOAD_BALANCE=Off)
+                                     (FAILOVER=ON)
+                                     (ADDRESS = (PROTOCOL = TCP)(HOST = 10.161.2.215)(PORT = 1621))
+                                     (ADDRESS = (PROTOCOL = TCP)(HOST = 10.161.2.225)(PORT = 1621))
+                                   )
+                                   (CONNECT_DATA =
+                                     (SERVICE_NAME = act6)
+                                     (FAILOVER_MODE =
+                                       (TYPE = SELECT)
+                                       (METHOD = BASIC)
+                                     )
+                                   )
+                                 )
+        username: UOP_ACT6
+        password: ylzXfW_2
+        driverClassName: oracle.jdbc.driver.OracleDriver
+        provinces: 17,70
+        initialSize: 1
+        maxActive: 20
+        minIdle: 1
+        maxPoolPreparedStatementPerConnectionSize: 200
+        maxWait: 4000
+      - name: ds_act_uop_act7
+        url: jdbc:oracle:thin:@(DESCRIPTION =
+                                   (ADDRESS_LIST =
+                                     (LOAD_BALANCE=Off)
+                                     (FAILOVER=ON)
+                                     (ADDRESS = (PROTOCOL = TCP)(HOST = 10.161.2.58)(PORT = 1621))
+                                     (ADDRESS = (PROTOCOL = TCP)(HOST = 10.161.2.59)(PORT = 1621))
+                                   )
+                                   (CONNECT_DATA =
+                                     (SERVICE_NAME = act7)
+                                     (FAILOVER_MODE =
+                                       (TYPE = SELECT)
+                                       (METHOD = BASIC)
+                                     )
+                                   )
+                                 )
+        username: UOP_ACT7
+        password: VbETep_7
+        driverClassName: oracle.jdbc.driver.OracleDriver
+        provinces: 18,71,83
+        initialSize: 1
+        maxActive: 20
+        minIdle: 1
+        maxPoolPreparedStatementPerConnectionSize: 200
+        maxWait: 4000
+      - name: ds_act_uop_act8
+        url: jdbc:oracle:thin:@(DESCRIPTION =
+                                   (ADDRESS_LIST =
+                                     (LOAD_BALANCE=Off)
+                                     (FAILOVER=ON)
+                                     (ADDRESS = (PROTOCOL = TCP)(HOST = 10.161.2.217)(PORT = 1621))
+                                     (ADDRESS = (PROTOCOL = TCP)(HOST = 10.161.2.237)(PORT = 1621))
+                                   )
+                                   (CONNECT_DATA =
+                                     (SERVICE_NAME = act8)
+                                     (FAILOVER_MODE =
+                                       (TYPE = SELECT)
+                                       (METHOD = BASIC)
+                                     )
+                                   )
+                                 )
+        username: UOP_ACT8
+        password: TudRhJ_0
+        driverClassName: oracle.jdbc.driver.OracleDriver
+        provinces: 19,30,50,84,90
+        initialSize: 1
+        maxActive: 20
+        minIdle: 1
+        maxPoolPreparedStatementPerConnectionSize: 200
+        maxWait: 4000

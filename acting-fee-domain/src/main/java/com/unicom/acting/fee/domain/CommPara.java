@@ -1,13 +1,12 @@
 package com.unicom.acting.fee.domain;
 
-import java.io.Serializable;
 
 /**
  * 账务公共参数表，映射TD_B_COMMPARA
  *
  * @author Wangkh
  */
-public class CommPara implements Serializable {
+public class CommPara {
     private String provinceCode;
     private String eparchyCode;
     private long paraAttr;

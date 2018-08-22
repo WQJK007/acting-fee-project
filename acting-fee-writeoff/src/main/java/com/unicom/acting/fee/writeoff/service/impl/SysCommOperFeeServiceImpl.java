@@ -1,12 +1,12 @@
 package com.unicom.acting.fee.writeoff.service.impl;
 
+import com.unicom.acting.fee.domain.ActingFeePubDef;
 import com.unicom.skyark.component.common.constants.SysTypes;
 import com.unicom.skyark.component.exception.SkyArkException;
 import com.unicom.skyark.component.util.JsonUtil;
 import com.unicom.skyark.component.web.data.RequestEntity;
 import com.unicom.skyark.component.web.data.Rsp;
 import com.unicom.skyark.component.web.rest.RestClient;
-import com.unicom.acting.fee.domain.ActPayPubDef;
 import com.unicom.acting.fee.writeoff.service.SysCommOperFeeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
@@ -33,7 +33,7 @@ public class SysCommOperFeeServiceImpl implements SysCommOperFeeService {
 
     @Override
     public String getTradeSequence(String eparchyCode, String provinceCode) {
-        List<String> sqeList = getSequence("0", ActPayPubDef.SEQ_TRADE_ID, 0, eparchyCode, provinceCode);
+        List<String> sqeList = getSequence("0", ActingFeePubDef.SEQ_TRADE_ID, 0, eparchyCode, provinceCode);
         if (!CollectionUtils.isEmpty(sqeList)) {
             return sqeList.get(0);
         }
@@ -71,7 +71,7 @@ public class SysCommOperFeeServiceImpl implements SysCommOperFeeService {
         reqParam.put("seqName", sqeName);
         reqParam.put("preCount", String.valueOf(preCount));
         requestEntity.setUriParams(reqParam);
-        Rsp rsp = restClient.callSkyArkMicroService("accounting", ActPayPubDef.GET_SEQUENCE, HttpMethod.GET, requestEntity);
+        Rsp rsp = restClient.callSkyArkMicroService("accounting", ActingFeePubDef.GET_SEQUENCE, HttpMethod.GET, requestEntity);
         if (!SysTypes.SYS_SUCCESS_CODE.equals(rsp.getRspCode())) {
             throw new SkyArkException(rsp.getRspCode(), rsp.getRspDesc());
         } else {

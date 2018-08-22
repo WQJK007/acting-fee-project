@@ -19,23 +19,8 @@
             <groupId>com.unicom.acting.fee</groupId>
             <artifactId>acting-fee-domain</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.unicom.acts.pay</groupId>
-            <artifactId>acts-pay-domain</artifactId>
-        </dependency>
     </dependencies>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <artifactId>acts-pay-dependencies</artifactId>
-                <groupId>com.unicom.acts.pay</groupId>
-                <version>${acts-pay.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
 
 </project>
