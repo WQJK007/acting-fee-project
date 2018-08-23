@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <option name="USE_RELEASE_OPTION" value="false" />
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="acting-fee-calc" />
+        <module name="acting-fee-dao" />
+        <module name="acting-fee-domain" />
+        <module name="acting-fee-owefee" />
+        <module name="acting-fee-writeoff" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel target="8">
+      <module name="acting-fee-calc" target="1.8" />
+      <module name="acting-fee-dao" target="1.8" />
+      <module name="acting-fee-dependencies" target="1.8" />
+      <module name="acting-fee-domain" target="1.8" />
+      <module name="acting-fee-owefee" target="1.8" />
+      <module name="acting-fee-parent" target="1.8" />
+      <module name="acting-fee-project" target="1.8" />
+      <module name="acting-fee-writeoff" target="1.8" />
+    </bytecodeTargetLevel>
+  </component>
+</project>

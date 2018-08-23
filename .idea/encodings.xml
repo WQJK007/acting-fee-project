@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/acting-fee-calc" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/acting-fee-dao" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/acting-fee-dependencies" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/acting-fee-domain" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/acting-fee-owefee" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/acting-fee-parent" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/acting-fee-writeoff" charset="UTF-8" />
+  </component>
+</project>

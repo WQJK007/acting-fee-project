@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/acting-fee-calc/acting-fee-calc.iml" filepath="$PROJECT_DIR$/acting-fee-calc/acting-fee-calc.iml" />
+      <module fileurl="file://$PROJECT_DIR$/acting-fee-dao/acting-fee-dao.iml" filepath="$PROJECT_DIR$/acting-fee-dao/acting-fee-dao.iml" />
+      <module fileurl="file://$PROJECT_DIR$/acting-fee-dependencies/acting-fee-dependencies.iml" filepath="$PROJECT_DIR$/acting-fee-dependencies/acting-fee-dependencies.iml" />
+      <module fileurl="file://$PROJECT_DIR$/acting-fee-domain/acting-fee-domain.iml" filepath="$PROJECT_DIR$/acting-fee-domain/acting-fee-domain.iml" />
+      <module fileurl="file://$PROJECT_DIR$/acting-fee-owefee/acting-fee-owefee.iml" filepath="$PROJECT_DIR$/acting-fee-owefee/acting-fee-owefee.iml" />
+      <module fileurl="file://$PROJECT_DIR$/acting-fee-parent/acting-fee-parent.iml" filepath="$PROJECT_DIR$/acting-fee-parent/acting-fee-parent.iml" />
+      <module fileurl="file://$PROJECT_DIR$/acting-fee-project.iml" filepath="$PROJECT_DIR$/acting-fee-project.iml" />
+      <module fileurl="file://$PROJECT_DIR$/acting-fee-writeoff/acting-fee-writeoff.iml" filepath="$PROJECT_DIR$/acting-fee-writeoff/acting-fee-writeoff.iml" />
+    </modules>
+  </component>
+</project>

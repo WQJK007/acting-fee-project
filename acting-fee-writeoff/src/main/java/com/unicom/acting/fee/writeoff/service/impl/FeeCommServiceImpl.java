@@ -139,7 +139,7 @@ public class FeeCommServiceImpl<T,S> implements FeeCommService {
         boolean specialState = writeOffRuleInfo.isSpecialRecvState(writeOffRuleInfo.getCurCycle());
         if (specialState) {
             //获取帐务业务后台处理表记录
-            List<FeePayLogDmn> feePayLogDmns = feePayLogService.getPayLogDmnByAcctId(feeAccount.getAcctId(), "0", DbTypes.ACT_ORDER_RDS);
+            List<FeePayLogDmn> feePayLogDmns = feePayLogService.getPayLogDmnByAcctId(feeAccount.getAcctId(), "0", DbTypes.ACT_ORDER_RDS, feeAccount.getProvinceCode());
             if (!CollectionUtils.isEmpty(feePayLogDmns)) {
                 tradeCommInfo.setExistsPayLogDmn(true);
                 for (FeePayLogDmn feePayLogDmn : feePayLogDmns) {

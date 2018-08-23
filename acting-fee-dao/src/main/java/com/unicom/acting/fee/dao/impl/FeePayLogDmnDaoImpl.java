@@ -19,7 +19,7 @@ import java.util.Map;
 @Repository
 public class FeePayLogDmnDaoImpl extends JdbcBaseDao implements FeePayLogDmnDao {
     @Override
-    public List<FeePayLogDmn> getPaylogDmnByAcctId(String acctId, String getMode, String provinceCode) {
+    public List<FeePayLogDmn> getPaylogDmnByAcctId(String acctId, String getMode, String dbType, String provinceCode) {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT EPARCHY_CODE,PROVINCE_CODE,TRADE_ID,TRADE_TYPE_CODE,BATCH_ID,");
         sql.append("PRIORITY,CHARGE_ID,ACCT_ID,USER_ID,SERIAL_NUMBER,WRITEOFF_MODE,");
@@ -37,10 +37,10 @@ public class FeePayLogDmnDaoImpl extends JdbcBaseDao implements FeePayLogDmnDao 
         sql.append("DATE_FORMAT(DEAL_TIME,'%Y-%m-%d %T') DEAL_TIME,");
         sql.append("RSRV_INFO1,LIMIT_MODE,PRINT_TAG FROM TF_B_PAYLOG_DMN ");
         sql.append("WHERE ACCT_ID=:VACCT_ID AND DEAL_TAG=:VDEAL_TAG");
-        Map<String, String> param = new HashMap<>();
+        Map<String, String> param = new HashMap(2);
         param.put("VACCT_ID", acctId);
         param.put("VDEAL_TAG", getMode);
-        return this.getJdbcTemplate(provinceCode).query(sql.toString(), param, new PaylogDmnRowMapper());
+        return this.getJdbcTemplate(dbType, provinceCode).query(sql.toString(), param, new PaylogDmnRowMapper());
     }
 
     @Override

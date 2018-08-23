@@ -20,8 +20,8 @@ public class FeePayLogServiceImpl implements FeePayLogService {
     private FeePayLogDmnDao feePayLogDmnDao;
 
     @Override
-    public List<FeePayLogDmn> getPayLogDmnByAcctId(String acctId, String getMode, String provinceCode) {
-        return feePayLogDmnDao.getPaylogDmnByAcctId(acctId, getMode, provinceCode);
+    public List<FeePayLogDmn> getPayLogDmnByAcctId(String acctId, String getMode, String dbType, String provinceCode) {
+        return feePayLogDmnDao.getPaylogDmnByAcctId(acctId, getMode, dbType, provinceCode);
     }
 
     @Override

@@ -13,12 +13,15 @@ import java.util.List;
  */
 public interface FeePayLogDmnDao extends IBaseDao {
     /**
+     * 获取账务交易后台工单记录信息
+     *
      * @param acctId
      * @param getMode
+     * @param dbType
      * @param provinceCode
      * @return
      */
-    List<FeePayLogDmn> getPaylogDmnByAcctId(String acctId, String getMode, String provinceCode);
+    List<FeePayLogDmn> getPaylogDmnByAcctId(String acctId, String getMode, String dbType, String provinceCode);
 
     /**
      * 是否存在交易记录
