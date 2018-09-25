@@ -2,12 +2,14 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
     <parent>
         <artifactId>skyark-component-parent</artifactId>
         <groupId>com.unicom.skyark.component</groupId>
-        <version>1.0.0.RELEASE</version>
+        <version>1.0.0-SNAPSHOT</version>
         <relativePath/>
     </parent>
+
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.unicom.acting.fee</groupId>
@@ -16,6 +18,7 @@
     <packaging>pom</packaging>
     <name>acting-fee-project</name>
     <description>cBSS系统账务中心费用计算类业务组件工程</description>
+
     <modules>
         <module>acting-fee-dependencies</module>
         <module>acting-fee-parent</module>
@@ -24,18 +27,29 @@
         <module>acting-fee-calc</module>
         <module>acting-fee-writeoff</module>
         <module>acting-fee-owefee</module>
+        <module>acting-fee-batch</module>
     </modules>
 
     <properties>
+        <revision>1.0.0-SNAPSHOT</revision>
+        <acting-common.version>1.0.0-SNAPSHOT</acting-common.version>
         <java.version>1.8</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <!-- 版本管理 -->
-        <acts-pay.version>1.0.0.RELEASE</acts-pay.version>
-        <revision>1.0.0.RELEASE</revision>
     </properties>
 
+    <distributionManagement>
+        <repository>
+            <id>releases</id>
+            <url>http://10.124.142.81/nexus/content/repositories/releases/</url>
+        </repository>
+        <snapshotRepository>
+            <id>snapshots</id>
+            <url>http://10.124.142.81/nexus/content/repositories/snapshots/</url>
+            <uniqueVersion>true</uniqueVersion>
+        </snapshotRepository>
+    </distributionManagement>
 
 </project>

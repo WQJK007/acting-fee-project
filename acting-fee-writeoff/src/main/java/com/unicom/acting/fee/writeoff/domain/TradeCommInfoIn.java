@@ -59,6 +59,15 @@ public class TradeCommInfoIn {
     private String reasonCode;      //原因编码
     private boolean bigAcctRecvFee;   //大合帐用户缴费
     private String qryBillType;     //账单查询模式 默认交易查询 1欠费查询
+    /**
+     * @see #cancleTag 返销标识
+     */
+    private char cancleTag;
+    /**
+     * @see #batchDealTag 1代表批处理
+     */
+    private String batchDealTag;
+
 
     public TradeCommInfoIn() {
         removeTag = "0";
@@ -75,6 +84,7 @@ public class TradeCommInfoIn {
         smsType = true;
         validTag = '0';
         depositCode = -1;
+        cancleTag = '0';
     }
 
     public String getHeaderGray() {
@@ -421,6 +431,22 @@ public class TradeCommInfoIn {
         this.qryBillType = qryBillType;
     }
 
+    public char getCancleTag() {
+        return cancleTag;
+    }
+
+    public void setCancleTag(char cancleTag) {
+        this.cancleTag = cancleTag;
+    }
+
+    public String getBatchDealTag() {
+        return batchDealTag;
+    }
+
+    public void setBatchDealTag(String batchDealTag) {
+        this.batchDealTag = batchDealTag;
+    }
+
     @Override
     public String toString() {
         return "TradeCommInfoIn{" +
@@ -467,6 +493,8 @@ public class TradeCommInfoIn {
                 ", reasonCode='" + reasonCode + '\'' +
                 ", bigAcctRecvFee=" + bigAcctRecvFee +
                 ", qryBillType='" + qryBillType + '\'' +
+                ", cancleTag=" + cancleTag +
+                ", batchDealTag='" + batchDealTag + '\'' +
                 '}';
     }
 }

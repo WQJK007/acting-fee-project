@@ -1,6 +1,7 @@
 package com.unicom.acting.fee.dao.impl;
 
 import com.unicom.acting.fee.domain.FeeDerateLateFeeLog;
+import com.unicom.skyark.component.jdbc.DbTypes;
 import com.unicom.skyark.component.jdbc.dao.impl.JdbcBaseDao;
 import com.unicom.skyark.component.util.StringUtil;
 import com.unicom.acting.fee.dao.FeeDerateLateFeeLogDao;
@@ -16,7 +17,7 @@ import java.util.Map;
 @Repository
 public class FeeDerateLateFeeLogDaoImpl extends JdbcBaseDao implements FeeDerateLateFeeLogDao {
     @Override
-    public List<FeeDerateLateFeeLog> getDerateLateFeeLog(String acctId, int startCycleId, int endCycleId, String provinceCode) {
+    public List<FeeDerateLateFeeLog> getDerateLateFeeLog(String acctId, int startCycleId, int endCycleId) {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT EPARCHY_CODE,DERATE_ID,ACCT_ID,USER_ID,CYCLE_ID,");
         sql.append("DERATE_RULE_ID,DERATE_FEE,USED_DERATE_FEE,USE_TAG,OPERATE_ID,");
@@ -29,11 +30,11 @@ public class FeeDerateLateFeeLogDaoImpl extends JdbcBaseDao implements FeeDerate
         sql.append("WHERE ACCT_ID = :VACCT_ID AND CYCLE_ID >=:VSTART_CYCLE_ID ");
         sql.append(" AND CYCLE_ID <=:VEND_CYCLE_ID AND USE_TAG IN ('0','2') ");
         sql.append("AND START_DATE <=SYSDATE() AND SYSDATE() <=END_DATE");
-        Map<String, String> param = new HashMap<>();
+        Map param = new HashMap(3);
         param.put("VACCT_ID", acctId);
-        param.put("VSTART_CYCLE_ID", String.valueOf(startCycleId));
-        param.put("VEND_CYCLE_ID", String.valueOf(endCycleId));
-        return this.getJdbcTemplate(provinceCode).query(sql.toString(), param, new DerateLateFeeLogRowMapper());
+        param.put("VSTART_CYCLE_ID", startCycleId);
+        param.put("VEND_CYCLE_ID", endCycleId);
+        return this.getJdbcTemplate(DbTypes.ACTING_DRDS).query(sql.toString(), param, new DerateLateFeeLogRowMapper());
     }
 
     private class DerateLateFeeLogRowMapper implements RowMapper {

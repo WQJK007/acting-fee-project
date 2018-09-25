@@ -1,5 +1,6 @@
 package com.unicom.acting.fee.dao.impl;
 
+import com.unicom.skyark.component.jdbc.DbTypes;
 import com.unicom.skyark.component.jdbc.dao.impl.JdbcBaseDao;
 import com.unicom.skyark.component.util.StringUtil;
 import com.unicom.acting.fee.dao.DepositParamDao;
@@ -16,7 +17,7 @@ import java.util.List;
 @Repository
 public class DepositParamDaoImpl extends JdbcBaseDao implements DepositParamDao {
     @Override
-    public List<DepositPriorRule> getDepositPriorRule(String provinceCode) {
+    public List<DepositPriorRule> getDepositPriorRule() {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT A.DEPOSIT_PRIOR_RULE_ID,A.DEPOSIT_CODE,A.DEPOSIT_PRIORITY,");
         sql.append("B.DEPOSIT_NAME,B.RETURN_TAG,B.DEPOSIT_TYPE_CODE,B.INVOICE_TAG,");
@@ -26,23 +27,23 @@ public class DepositParamDaoImpl extends JdbcBaseDao implements DepositParamDao 
         sql.append("FROM TD_B_DEPOSITPRIORRULE A, TD_B_DEPOSIT B ");
         sql.append("WHERE A.DEPOSIT_CODE = B.DEPOSIT_CODE ");
         sql.append("AND B.IF_BALANCE IN ('0','1') ");
-        return this.getJdbcTemplate(provinceCode).query(sql.toString(), new DepositPriorRuleMapper());
+        return this.getJdbcTemplate(DbTypes.ACT_PARA_RDS).query(sql.toString(), new DepositPriorRuleMapper());
     }
 
     @Override
-    public List<DepositLimitRule> getDepositLimitRule(String provinceCode) {
+    public List<DepositLimitRule> getDepositLimitRule() {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT DEPOSIT_LIMIT_RULE_ID,DEPOSIT_CODE,ITEM_CODE,");
         sql.append("LIMIT_MODE,LIMIT_TYPE,REMARK FROM TD_B_DEPOSITLIMITRULE");
-        return this.getJdbcTemplate(provinceCode).query(sql.toString(), new DepositLimitRuleMapper());
+        return this.getJdbcTemplate(DbTypes.ACT_PARA_RDS).query(sql.toString(), new DepositLimitRuleMapper());
     }
 
     @Override
-    public List<PaymentDeposit> getPaymentDeposit(String provinceCode) {
+    public List<PaymentDeposit> getPaymentDeposit() {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT PAYMENT_ID,PAY_FEE_MODE_CODE,RULE_ID,DEPOSIT_CODE,");
         sql.append("PRIVATE_TAG,INVOICE_TAG,REMARK FROM TD_B_PAYMENT_DEPOSIT");
-        return this.getJdbcTemplate(provinceCode).query(sql.toString(), new PaymentDepositMapper());
+        return this.getJdbcTemplate(DbTypes.ACT_PARA_RDS).query(sql.toString(), new PaymentDepositMapper());
     }
 
     //账本科目优先级结果集类
@@ -87,7 +88,6 @@ public class DepositParamDaoImpl extends JdbcBaseDao implements DepositParamDao 
             return depositLimitRule;
         }
     }
-
 
     //储值方式和账本科目对应关系结果集
     class PaymentDepositMapper implements RowMapper<PaymentDeposit> {

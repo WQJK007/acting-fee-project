@@ -7,6 +7,7 @@ import com.unicom.acting.fee.domain.FeeBillDefaultSortRule;
 import com.unicom.acting.fee.writeoff.domain.RealBillRspInfo;
 import com.unicom.acting.fee.writeoff.domain.TradeCommInfoIn;
 import com.unicom.acting.fee.writeoff.service.FeeBillService;
+import com.unicom.acting.fee.writeoff.service.RealBillService;
 import com.unicom.acting.fee.writeoff.service.SysCommOperFeeService;
 import com.unicom.skyark.component.common.constants.SysTypes;
 import com.unicom.skyark.component.exception.SkyArkException;
@@ -99,27 +100,27 @@ public class FeeBillServiceImpl implements FeeBillService {
     }
 
     @Override
-    public List<FeeBill> getBillOweByAcctId(String acctId, int startCycleId, int endCycleId, String provinceCode) {
-        return feeBillDao.getBillOweByAcctId(acctId, startCycleId, endCycleId, provinceCode);
+    public List<FeeBill> getBillOweByAcctId(String acctId, int startCycleId, int endCycleId) {
+        return feeBillDao.getBillOweByAcctId(acctId, startCycleId, endCycleId);
     }
 
     @Override
-    public List<FeeBill> getBillOweByUserId(String acctId, String userId, int startCycleId, int endCycleId, String provinceCode) {
-        return feeBillDao.getBillOweByUserId(acctId, userId, startCycleId, endCycleId, provinceCode);
+    public List<FeeBill> getBillOweByUserId(String acctId, String userId, int startCycleId, int endCycleId) {
+        return feeBillDao.getBillOweByUserId(acctId, userId, startCycleId, endCycleId);
     }
 
     @Override
-    public List<FeeBill> getBadBillOweByAcctId(String acctId, int startCycleId, int endCycleId, String provinceCode) {
-        return feeBillDao.getBadBillOweByAcctId(acctId, startCycleId, endCycleId, provinceCode);
+    public List<FeeBill> getBadBillOweByAcctId(String acctId, int startCycleId, int endCycleId) {
+        return feeBillDao.getBadBillOweByAcctId(acctId, startCycleId, endCycleId);
     }
 
     @Override
-    public boolean hasPreCycleBillByAcctId(String acctId, int startCycleId, int endCycleId, String provinceCode) {
-        return feeBillDao.getBillByAcctId(acctId, startCycleId, endCycleId, provinceCode);
+    public boolean hasPreCycleBillByAcctId(String acctId, int startCycleId, int endCycleId) {
+        return feeBillDao.getBillByAcctId(acctId, startCycleId, endCycleId);
     }
 
     @Override
-    public List<FeeBill> removeWriteOffRealBill(List<FeeBill> feeBillList, List<FeeBill> realFeeBillList, String acctId, int preCurCycleId, String DbType) {
+    public List<FeeBill> removeWriteOffRealBill(List<FeeBill> feeBillList, List<FeeBill> realFeeBillList, String acctId, int preCurCycleId) {
         //往月账单中是否存在待开帐账期账单
         boolean hasPreCycleBills = false;
         //判断是否有未销帐的帐单
@@ -132,7 +133,7 @@ public class FeeBillServiceImpl implements FeeBillService {
 
         //没有未销帐的帐单，判断是否有销帐的帐单
         if (!hasPreCycleBills) {
-            if (hasPreCycleBillByAcctId(acctId, preCurCycleId, preCurCycleId, DbType)) {
+            if (hasPreCycleBillByAcctId(acctId, preCurCycleId, preCurCycleId)) {
                 hasPreCycleBills = true;
             }
         }
@@ -155,8 +156,8 @@ public class FeeBillServiceImpl implements FeeBillService {
         realFeeBillList.sort(new FeeBillDefaultSortRule());
 
         //账单序列数
-        List<String> billIdList = sysCommOperFeeService.getSequence(eparchyCode,
-                ActingFeePubDef.SEQ_BILL_ID, billIdCount, provinceCode);
+        List<String> billIdList = sysCommOperFeeService.getActingSequence(ActingFeePubDef.SEQ_BILLID_TABNAME,
+                ActingFeePubDef.SEQ_BILLID_COLUMNNAME, billIdCount, provinceCode);
 
         String tmpUserId = realFeeBillList.get(0).getUserId();
         int cycleId = realFeeBillList.get(0).getCycleId();
@@ -173,7 +174,8 @@ public class FeeBillServiceImpl implements FeeBillService {
                     billId = billIdList.get(billIndex);
                     billIndex++;
                 } else {
-                    billId = sysCommOperFeeService.getSequence(eparchyCode, ActingFeePubDef.SEQ_BILL_ID, provinceCode);
+                    billId = sysCommOperFeeService.getActingSequence(ActingFeePubDef.SEQ_BILLID_TABNAME,
+                            ActingFeePubDef.SEQ_BILLID_COLUMNNAME, provinceCode);
                 }
 
                 for (int k = upBillIdBeginIndex; k < i; ++k) {
@@ -189,7 +191,8 @@ public class FeeBillServiceImpl implements FeeBillService {
         if (billIndex < billIdList.size()) {
             billId = billIdList.get(billIndex);
         } else {
-            billId = sysCommOperFeeService.getSequence(eparchyCode, ActingFeePubDef.SEQ_BILL_ID, provinceCode);
+            billId = sysCommOperFeeService.getActingSequence(ActingFeePubDef.SEQ_BILLID_TABNAME,
+                    ActingFeePubDef.SEQ_BILLID_COLUMNNAME, provinceCode);
         }
 
         //设置最后一个用户或者最后一个账期账单BILLID

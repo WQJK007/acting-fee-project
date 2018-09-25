@@ -3,6 +3,7 @@ package com.unicom.acting.fee.dao.impl;
 import com.unicom.acting.fee.dao.FeeAccountDepositDao;
 import com.unicom.acting.fee.domain.FeeAccountDeposit;
 import com.unicom.acting.fee.domain.FeeAcctBalanceRel;
+import com.unicom.skyark.component.jdbc.DbTypes;
 import com.unicom.skyark.component.jdbc.dao.impl.JdbcBaseDao;
 import com.unicom.skyark.component.util.StringUtil;
 import org.springframework.jdbc.core.RowMapper;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +19,7 @@ import java.util.Map;
 @Repository
 public class FeeAccountDepositDaoImpl extends JdbcBaseDao implements FeeAccountDepositDao {
     @Override
-    public List<FeeAccountDeposit> getAcctDepositByAcctId(String acctId, String provinceCode) {
+    public List<FeeAccountDeposit> getAcctDepositByAcctId(String acctId) {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT ACCT_BALANCE_ID,ACCT_ID,USER_ID,");
         sql.append("DEPOSIT_CODE,DEPOSIT_MONEY,INIT_MONEY,MONEY,");
@@ -27,21 +29,19 @@ public class FeeAccountDepositDaoImpl extends JdbcBaseDao implements FeeAccountD
         sql.append("VALID_TAG,FREEZE_FEE,PRIVATE_TAG,PROVINCE_CODE,PROVINCE_CODE,");
         sql.append("EPARCHY_CODE,VERSION_NO,IFNULL(ACTION_CODE,-1) ACTION_CODE,");
         sql.append("OPEN_CYCLE_ID,DATE_FORMAT(UPDATE_TIME,'%Y-%m-%d %T') UPDATE_TIME,");
-        sql.append("RSRV_INFO2,RSRV_INFO1,RSRV_FEE2,RSRV_FEE1,LIMIT_LEFT FROM TF_F_ACCOUNTDEPOSIT ");
-        sql.append("WHERE ACCT_ID=:VACCT_ID");
-        Map<String, String> param = new HashMap<>();
-        param.put("VACCT_ID", acctId);
-        return this.getJdbcTemplate(provinceCode).query(sql.toString(), param, new PAcctDepositMapper());
+        sql.append("RSRV_INFO2,RSRV_INFO1,RSRV_FEE2,RSRV_FEE1,LIMIT_LEFT ");
+        sql.append("FROM TF_F_ACCOUNTDEPOSIT WHERE ACCT_ID=:VACCT_ID");
+        Map param = Collections.singletonMap("VACCT_ID", acctId);
+        return this.getJdbcTemplate(DbTypes.ACTS_DRDS).query(sql.toString(), param, new PAcctDepositMapper());
     }
 
     @Override
-    public List<FeeAcctBalanceRel> getAcctBalanceRelByAcctId(String acctId, String provinceCode) {
+    public List<FeeAcctBalanceRel> getAcctBalanceRelByAcctId(String acctId) {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT ACCT_BALANCE_ID,ACCT_BALANCE_ID2,ACCT_ID,RATE ");
         sql.append("FROM TF_F_ACCTBALANCE_REL WHERE ACCT_ID = :VACCT_ID ");
-        Map<String, String> param = new HashMap<>();
-        param.put("VACCT_ID", acctId);
-        return this.getJdbcTemplate(provinceCode).query(sql.toString(), param, new PAcctBalanceRelMapper());
+        Map param = Collections.singletonMap("VACCT_ID", acctId);
+        return this.getJdbcTemplate(DbTypes.ACTS_DRDS).query(sql.toString(), param, new PAcctBalanceRelMapper());
     }
 
 

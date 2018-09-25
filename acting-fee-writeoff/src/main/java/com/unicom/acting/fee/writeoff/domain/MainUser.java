@@ -1,5 +1,6 @@
 package com.unicom.acting.fee.writeoff.domain;
 
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.unicom.skyark.component.common.SkyArkPropertyNamingStrategy;

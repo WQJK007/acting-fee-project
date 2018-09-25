@@ -18,28 +18,18 @@ public interface FeePayLogDmnDao extends IBaseDao {
      * @param acctId
      * @param getMode
      * @param dbType
-     * @param provinceCode
+     * @param routeValue
      * @return
      */
-    List<FeePayLogDmn> getPaylogDmnByAcctId(String acctId, String getMode, String dbType, String provinceCode);
-
-    /**
-     * 是否存在交易记录
-     *
-     * @param tradeId
-     * @param provinceCode
-     * @return
-     */
-    boolean ifExistOuterTradeId(String tradeId, String provinceCode);
+    List<FeePayLogDmn> getPaylogDmnByAcctId(String acctId, String getMode, String dbType, String routeValue);
 
     /**
      * 用户活动实例
      *
      * @param acctId
      * @param userId
-     * @param provinceId
      * @return
      */
-    List<FeeDiscntDeposit> getUserDiscntDepositByUserId(String acctId, String userId, String provinceId);
+    List<FeeDiscntDeposit> getUserDiscntDepositByUserId(String acctId, String userId);
 
 }

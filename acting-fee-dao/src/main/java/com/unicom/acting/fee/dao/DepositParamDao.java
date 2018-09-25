@@ -15,12 +15,24 @@ import java.util.List;
  * @author Wangkh
  */
 public interface DepositParamDao extends IBaseDao {
-    //获取账本科目优先级全集
-    List<DepositPriorRule> getDepositPriorRule(String provinceCode);
+    /**
+     * 获取账本科目优先级全集
+     *
+     * @return
+     */
+    List<DepositPriorRule> getDepositPriorRule();
 
-    //获取账本科目限定规则全集
-    List<DepositLimitRule> getDepositLimitRule(String provinceCode);
+    /**
+     * 获取账本科目限定规则全集
+     *
+     * @return
+     */
+    List<DepositLimitRule> getDepositLimitRule();
 
-    //获取储值方式和账本科目对应关系全集
-    List<PaymentDeposit> getPaymentDeposit(String provinceCode);
+    /**
+     * 获取储值方式和账本科目对应关系全集
+     *
+     * @return
+     */
+    List<PaymentDeposit> getPaymentDeposit();
 }

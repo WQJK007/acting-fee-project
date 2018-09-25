@@ -14,19 +14,17 @@ public interface CommparaDao extends IBaseDao {
     /**
      * 获取公共参数全集
      *
-     * @param provinceCode
      * @return
      */
-    List<CommPara> getCommpara(String provinceCode);
+    List<CommPara> getCommpara();
 
     /**
      * 查询时间戳
      *
      * @param tagCode
-     * @param provinceCode
      * @return
      */
-    String getParamTimeStamp(String tagCode, String provinceCode);
+    String getParamTimeStamp(String tagCode);
 
     /**
      * 查询账管公共参数表参数配置
@@ -34,10 +32,9 @@ public interface CommparaDao extends IBaseDao {
      * @param paraCode
      * @param provinceCode
      * @param eparchyCode
-     * @param provinceId
      * @return
      */
-    CommPara getCommpara(String paraCode, String provinceCode, String eparchyCode, String provinceId);
+    CommPara getCommpara(String paraCode, String provinceCode, String eparchyCode);
 
     /**
      * 提供LIKE方式查询账管公共参数表参数配置
@@ -45,26 +42,23 @@ public interface CommparaDao extends IBaseDao {
      * @param paraCode
      * @param provinceCode
      * @param eparchyCode
-     * @param provinceId
      * @return
      */
-    CommPara getCommparaByLike(String paraCode, String provinceCode, String eparchyCode, String provinceId);
+    CommPara getCommparaByLike(String paraCode, String provinceCode, String eparchyCode);
 
     /**
      * 根据地市编码查询地市归属省份编码
      *
      * @param eparchyCode
-     * @param provinceCode
      * @return
      */
-    String getProvCodeByEparchyCode(String eparchyCode, String provinceCode);
+    String getProvCodeByEparchyCode(String eparchyCode);
 
     /**
      * 查询网别类型的父级类型是移网或固网
      *
      * @param netTypeCode
-     * @param provinceCode
      * @return
      */
-    String getParentTypeCode(String netTypeCode, String provinceCode);
+    String getParentTypeCode(String netTypeCode);
 }

@@ -653,6 +653,7 @@ public class FeeAccountDeposit implements Cloneable {
     }
 
     public FeeAccountDeposit() {
+        userId = "-1";
         limitMode = '0';
         validTag = '0';
         privateTag = '0';
@@ -698,6 +699,7 @@ public class FeeAccountDeposit implements Cloneable {
     }
 
     public void init() {
+        userId = "-1";
         limitMode = '0';
         validTag = '0';
         privateTag = '0';

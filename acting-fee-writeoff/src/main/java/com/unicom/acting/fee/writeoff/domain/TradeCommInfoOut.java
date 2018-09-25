@@ -1,8 +1,5 @@
 package com.unicom.acting.fee.writeoff.domain;
 
-import com.unicom.acting.fee.domain.DetailBillInfo;
-import com.unicom.acting.fee.domain.DetailDepositInfo;
-import com.unicom.acting.fee.domain.SubDetailBillInfo;
 import com.unicom.acting.fee.domain.UniBalanceInfo;
 
 import java.util.List;
@@ -49,7 +46,7 @@ public class TradeCommInfoOut {
     private String transFee;            //账本可转总费用
 
     private String creditValue;         //信用度
-    private UniBalanceInfo unifiedBalanceInfo;//统一余额对象
+    private UniBalanceInfo uniBalanceInfo;//统一余额对象
     private String newBalance;           //账户结余
     private String productType;          //手机合约用户类型
     private String transMoney;           //合约包用户该月返还话费
@@ -445,12 +442,12 @@ public class TradeCommInfoOut {
         this.resFee = resFee;
     }
 
-    public UniBalanceInfo getUnifiedBalanceInfo() {
-        return unifiedBalanceInfo;
+    public UniBalanceInfo getUniBalanceInfo() {
+        return uniBalanceInfo;
     }
 
-    public void setUnifiedBalanceInfo(UniBalanceInfo unifiedBalanceInfo) {
-        this.unifiedBalanceInfo = unifiedBalanceInfo;
+    public void setUniBalanceInfo(UniBalanceInfo uniBalanceInfo) {
+        this.uniBalanceInfo = uniBalanceInfo;
     }
 
     public String getCreditValue() {
@@ -523,7 +520,7 @@ public class TradeCommInfoOut {
                 ", bankFee='" + bankFee + '\'' +
                 ", transFee='" + transFee + '\'' +
                 ", creditValue='" + creditValue + '\'' +
-                ", unifiedBalanceInfo=" + unifiedBalanceInfo +
+                ", uniBalanceInfo=" + uniBalanceInfo +
                 ", newBalance='" + newBalance + '\'' +
                 ", productType='" + productType + '\'' +
                 ", transMoney='" + transMoney + '\'' +

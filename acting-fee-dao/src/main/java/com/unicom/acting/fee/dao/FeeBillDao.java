@@ -17,10 +17,9 @@ public interface FeeBillDao extends IBaseDao {
      * @param acctId
      * @param startCycleId
      * @param endCycleId
-     * @param provinceCode
      * @return
      */
-    List<FeeBill> getBillOweByAcctId(String acctId, int startCycleId, int endCycleId, String provinceCode);
+    List<FeeBill> getBillOweByAcctId(String acctId, int startCycleId, int endCycleId);
 
     /**
      * 按照账户,用户和开始结束时间获取往月账单
@@ -29,10 +28,9 @@ public interface FeeBillDao extends IBaseDao {
      * @param userId
      * @param startCycleId
      * @param endCycleId
-     * @param provinceCode
      * @return
      */
-    List<FeeBill> getBillOweByUserId(String acctId, String userId, int startCycleId, int endCycleId, String provinceCode);
+    List<FeeBill> getBillOweByUserId(String acctId, String userId, int startCycleId, int endCycleId);
 
     /**
      * 按照账户和开始结束时间坏账账单
@@ -40,10 +38,9 @@ public interface FeeBillDao extends IBaseDao {
      * @param acctId
      * @param startCycleId
      * @param endCycleId
-     * @param provinceCode
      * @return
      */
-    List<FeeBill> getBadBillOweByAcctId(String acctId, int startCycleId, int endCycleId, String provinceCode);
+    List<FeeBill> getBadBillOweByAcctId(String acctId, int startCycleId, int endCycleId);
 
     /**
      * 获取账户账单
@@ -51,8 +48,7 @@ public interface FeeBillDao extends IBaseDao {
      * @param acctId
      * @param startCycleId
      * @param endCycleId
-     * @param provinceCode
      * @return
      */
-    boolean getBillByAcctId(String acctId, int startCycleId, int endCycleId, String provinceCode);
+    boolean getBillByAcctId(String acctId, int startCycleId, int endCycleId);
 }

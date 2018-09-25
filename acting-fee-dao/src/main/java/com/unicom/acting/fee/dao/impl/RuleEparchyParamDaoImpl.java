@@ -1,5 +1,6 @@
 package com.unicom.acting.fee.dao.impl;
 
+import com.unicom.skyark.component.jdbc.DbTypes;
 import com.unicom.skyark.component.jdbc.dao.impl.JdbcBaseDao;
 import com.unicom.skyark.component.util.StringUtil;
 import com.unicom.acting.fee.dao.RuleEparchyParamDao;
@@ -15,19 +16,19 @@ import java.util.List;
 @Repository
 public class RuleEparchyParamDaoImpl extends JdbcBaseDao implements RuleEparchyParamDao {
     @Override
-    public List<RuleEparchy> getRuleEparchy(String provinceCode) {
+    public List<RuleEparchy> getRuleEparchy() {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT RULE_ID,PROVINCE_CODE,EPARCHY_CODE,");
         sql.append("NET_TYPE_CODE,RULE_TYPE,COND_DESC FROM TD_B_RULE_EPARCHY");
-        return this.getJdbcTemplate(provinceCode).query(sql.toString(), new RuleEparchyMapper());
+        return this.getJdbcTemplate(DbTypes.ACT_PARA_RDS).query(sql.toString(), new RuleEparchyMapper());
     }
 
     @Override
-    public List<LateCalPara> getLateCalPara(String provinceCode) {
+    public List<LateCalPara> getLateCalPara() {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT RULE_ID,START_CYCLE_ID,END_CYCLE_ID,LATE_FEE_RATIO1,LATE_FEE_RATIO2,");
         sql.append("INI_CAL_FEE,MAX_LATE_FEE,MAX_DAY_NUM,INI_DAYS FROM TD_B_LATECALPARA");
-        return this.getJdbcTemplate(provinceCode).query(sql.toString(), new LateCalParaRowMapper());
+        return this.getJdbcTemplate(DbTypes.ACT_PARA_RDS).query(sql.toString(), new LateCalParaRowMapper());
     }
 
     //销账规则结果集类

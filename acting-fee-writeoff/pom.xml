@@ -16,18 +16,21 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.unicom.skyark.component</groupId>
-            <artifactId>skyark-component-web</artifactId>
+            <groupId>com.unicom.acting.common</groupId>
+            <artifactId>acting-common-sequence</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.unicom.acting.fee</groupId>
+            <artifactId>acting-fee-dao</artifactId>
         </dependency>
         <dependency>
             <groupId>com.unicom.acting.fee</groupId>
             <artifactId>acting-fee-calc</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.unicom.acting.fee</groupId>
-            <artifactId>acting-fee-dao</artifactId>
+            <groupId>com.unicom.skyark.component</groupId>
+            <artifactId>skyark-component-web</artifactId>
         </dependency>
     </dependencies>
-
 
 </project>

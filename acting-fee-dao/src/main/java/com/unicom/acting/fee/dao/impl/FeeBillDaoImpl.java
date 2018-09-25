@@ -1,6 +1,7 @@
 package com.unicom.acting.fee.dao.impl;
 
 import com.unicom.acting.fee.domain.FeeBill;
+import com.unicom.skyark.component.jdbc.DbTypes;
 import com.unicom.skyark.component.jdbc.dao.impl.JdbcBaseDao;
 import com.unicom.skyark.component.util.StringUtil;
 import com.unicom.acting.fee.dao.FeeBillDao;
@@ -16,7 +17,7 @@ import java.util.Map;
 @Repository
 public class FeeBillDaoImpl extends JdbcBaseDao implements FeeBillDao {
     @Override
-    public List<FeeBill> getBillOweByAcctId(String acctId, int startCycleId, int endCycleId, String provinceCode) {
+    public List<FeeBill> getBillOweByAcctId(String acctId, int startCycleId, int endCycleId) {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT PROVINCE_CODE,EPARCHY_CODE,NET_TYPE_CODE,SERIAL_NUMBER,");
         sql.append("BILL_ID,ACCT_ID,USER_ID,CYCLE_ID,INTEGRATE_ITEM_CODE,FEE,BALANCE,");
@@ -29,15 +30,15 @@ public class FeeBillDaoImpl extends JdbcBaseDao implements FeeBillDao {
         sql.append("WHERE ACCT_ID = :VACCT_ID AND CYCLE_ID >= :VSTART_CYCLE_ID ");
         sql.append("AND CYCLE_ID <= :VEND_CYCLE_ID AND BILL_PAY_TAG ='0' ");
         sql.append("AND CANPAY_TAG NOT IN ('8','9')");
-        Map param = new HashMap();
+        Map param = new HashMap(3);
         param.put("VACCT_ID", acctId);
         param.put("VSTART_CYCLE_ID", startCycleId);
         param.put("VEND_CYCLE_ID", endCycleId);
-        return this.getJdbcTemplate(provinceCode).query(sql.toString(), param, new BillRowMapper());
+        return this.getJdbcTemplate(DbTypes.ACTING_DRDS).query(sql.toString(), param, new BillRowMapper());
     }
 
     @Override
-    public List<FeeBill> getBillOweByUserId(String acctId, String userId, int startCycleId, int endCycleId, String provinceCode) {
+    public List<FeeBill> getBillOweByUserId(String acctId, String userId, int startCycleId, int endCycleId) {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT PROVINCE_CODE,EPARCHY_CODE,NET_TYPE_CODE,SERIAL_NUMBER,");
         sql.append("BILL_ID,ACCT_ID,USER_ID,CYCLE_ID,INTEGRATE_ITEM_CODE,FEE,BALANCE,");
@@ -50,16 +51,16 @@ public class FeeBillDaoImpl extends JdbcBaseDao implements FeeBillDao {
         sql.append("WHERE ACCT_ID=:VACCT_ID AND USER_ID = :VUSER_ID ");
         sql.append("AND CYCLE_ID>=:VSTART_CYCLE_ID AND CYCLE_ID<=:VEND_CYCLE_ID ");
         sql.append("AND BILL_PAY_TAG='0' AND CANPAY_TAG NOT IN ('8','9')");
-        Map param = new HashMap();
+        Map param = new HashMap(4);
         param.put("VACCT_ID", acctId);
         param.put("VUSER_ID", userId);
         param.put("VSTART_CYCLE_ID", startCycleId);
         param.put("VEND_CYCLE_ID", endCycleId);
-        return this.getJdbcTemplate(provinceCode).query(sql.toString(), param, new BillRowMapper());
+        return this.getJdbcTemplate(DbTypes.ACTING_DRDS).query(sql.toString(), param, new BillRowMapper());
     }
 
     @Override
-    public List<FeeBill> getBadBillOweByAcctId(String acctId, int startCycleId, int endCycleId, String provinceCode) {
+    public List<FeeBill> getBadBillOweByAcctId(String acctId, int startCycleId, int endCycleId) {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT PROVINCE_CODE,EPARCHY_CODE,NET_TYPE_CODE,SERIAL_NUMBER,");
         sql.append("BILL_ID,ACCT_ID,USER_ID,CYCLE_ID,INTEGRATE_ITEM_CODE,FEE,");
@@ -72,23 +73,23 @@ public class FeeBillDaoImpl extends JdbcBaseDao implements FeeBillDao {
         sql.append("RSRV_FEE1,RSRV_FEE2,RSRV_FEE3,RSRV_INFO1,RSRV_INFO2 ");
         sql.append("FROM TS_B_BADBILL WHERE ACCT_ID=:VACCT_ID AND CYCLE_ID>=:VSTART_CYCLE_ID ");
         sql.append("AND CYCLE_ID<=:VEND_CYCLE_ID AND BILL_PAY_TAG='0'");
-        Map param = new HashMap();
+        Map param = new HashMap(3);
         param.put("VACCT_ID", acctId);
         param.put("VSTART_CYCLE_ID", startCycleId);
         param.put("VEND_CYCLE_ID", endCycleId);
-        return this.getJdbcTemplate(provinceCode).query(sql.toString(), param, new BillRowMapper());
+        return this.getJdbcTemplate(DbTypes.ACTING_DRDS).query(sql.toString(), param, new BillRowMapper());
     }
 
     @Override
-    public boolean getBillByAcctId(String acctId, int startCycleId, int endCycleId, String provinceCode) {
+    public boolean getBillByAcctId(String acctId, int startCycleId, int endCycleId) {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT 1 FROM TS_B_BILL WHERE ACCT_ID=:VACCT_ID ");
         sql.append("AND CYCLE_ID >=:VSTART_CYCLE_ID AND CYCLE_ID <=:VEND_CYCLE_ID");
-        Map param = new HashMap();
+        Map param = new HashMap(3);
         param.put("VACCT_ID", acctId);
         param.put("VSTART_CYCLE_ID", startCycleId);
         param.put("VEND_CYCLE_ID", endCycleId);
-        List<String> result = this.getJdbcTemplate(provinceCode).queryForList(sql.toString(), param, String.class);
+        List<String> result = this.getJdbcTemplate(DbTypes.ACTING_DRDS).queryForList(sql.toString(), param, String.class);
         if (!result.isEmpty()) {
             return true;
         }

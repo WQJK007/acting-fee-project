@@ -2,6 +2,8 @@ package com.unicom.acting.fee.writeoff.service;
 
 
 import com.unicom.acting.fee.domain.TradeCommInfo;
+import com.unicom.acting.common.domain.User;
+import com.unicom.acting.fee.domain.WriteOffRuleInfo;
 import com.unicom.acting.fee.writeoff.domain.TradeCommInfoIn;
 import com.unicom.skyark.component.service.IBaseService;
 
@@ -24,10 +26,21 @@ public interface FeeCommService extends IBaseService {
      * 获取地市账期信息
      *
      * @param tradeCommInfo
-     * @param eparchyCode
-     * @param DbType
+     * @param eparchyCode   账户归属地市编码
+     * @param provinceCode  账户归属省份编码
      */
     void getEparchyCycleInfo(TradeCommInfo tradeCommInfo, String eparchyCode, String provinceCode);
+
+    /**
+     * 获取账户地市销账规则
+     *
+     * @param writeOffRuleInfo
+     * @param provinceCode
+     * @param eparchyCode
+     * @param netTypeCode
+     */
+    void getWriteOffRule(WriteOffRuleInfo writeOffRuleInfo, String provinceCode, String eparchyCode, String netTypeCode);
+
 
     /**
      * 获取账本资源
@@ -54,6 +67,42 @@ public interface FeeCommService extends IBaseService {
     void specialBusiCheck(TradeCommInfoIn tradeCommInfoIn, TradeCommInfo tradeCommInfo);
 
     /**
+     * 是否存在托收在途账单
+     *
+     * @param tradeCommInfoIn
+     * @param tradeCommInfo
+     * @return
+     */
+    boolean ifBillConsigning(TradeCommInfoIn tradeCommInfoIn, TradeCommInfo tradeCommInfo);
+
+    /**
+     * 是否托收账户
+     *
+     * @param tradeCommInfoIn
+     * @param tradeCommInfo
+     * @return
+     */
+    boolean ifConsignPayMode(TradeCommInfoIn tradeCommInfoIn, TradeCommInfo tradeCommInfo);
+
+    /**
+     * 是否存在预打记录
+     *
+     * @param tradeCommInfoIn
+     * @param tradeCommInfo
+     * @return
+     */
+    boolean ifPrePrintInvoice(TradeCommInfoIn tradeCommInfoIn, TradeCommInfo tradeCommInfo);
+
+    /**
+     * 电子赠款停机状态不能赠送
+     *
+     * @param mainUser
+     * @param paymentId
+     * @param writeOffRuleInfo
+     */
+    void elecPresentLimit(User mainUser, int paymentId, WriteOffRuleInfo writeOffRuleInfo);
+
+    /**
      * 是否计算滞纳金
      *
      * @param tradeCommInfoIn
@@ -75,7 +124,6 @@ public interface FeeCommService extends IBaseService {
      *
      * @param tradeCommInfo
      * @param acctId
-     * @param provinceCode
      */
-    void getAcctPaymentCycle(TradeCommInfo tradeCommInfo, String acctId, String provinceCode);
+    void getAcctPaymentCycle(TradeCommInfo tradeCommInfo, String acctId);
 }

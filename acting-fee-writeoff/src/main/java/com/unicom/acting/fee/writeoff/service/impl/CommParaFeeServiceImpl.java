@@ -18,30 +18,30 @@ public class CommParaFeeServiceImpl implements CommParaFeeService {
     private CommparaDao commparaDao;
 
     @Override
-    public String getParamTimeStamp(String tagCode, String provinceCode) {
-        return commparaDao.getParamTimeStamp(tagCode, provinceCode);
+    public String getParamTimeStamp(String tagCode) {
+        return commparaDao.getParamTimeStamp(tagCode);
     }
 
     @Override
-    @Cacheable(value = "actingfeewriteoff_getcommpara")
-    public CommPara getCommpara(String paraCode, String provinceCode, String eparchyCode, String provinceId) {
-        return commparaDao.getCommpara(paraCode, provinceCode, eparchyCode, provinceId);
+    @Cacheable(value = "actingfee_getcommpara")
+    public CommPara getCommpara(String paraCode, String provinceCode, String eparchyCode) {
+        return commparaDao.getCommpara(paraCode, provinceCode, eparchyCode);
     }
 
     @Override
-    public CommPara getCommparaByLike(String paraCode, String provinceCode, String eparchyCode, String provinceId) {
-        return commparaDao.getCommparaByLike(paraCode, provinceCode, eparchyCode, provinceId);
+    public CommPara getCommparaByLike(String paraCode, String provinceCode, String eparchyCode) {
+        return commparaDao.getCommparaByLike(paraCode, provinceCode, eparchyCode);
     }
 
     @Override
-    @Cacheable(value = "actingfeewriteoff_nettypeparentcode")
-    public String getParentTypeCode(String netTypeCode, String provinceCode) {
-        return commparaDao.getParentTypeCode(netTypeCode, provinceCode);
+    @Cacheable(value = "actingfee_netparentcode")
+    public String getParentTypeCode(String netTypeCode) {
+        return commparaDao.getParentTypeCode(netTypeCode);
     }
 
     @Override
-    @Cacheable(value = "actingfeewriteoff_provcodebyeparchy")
-    public String getProvCodeByEparchyCode(String eparchyCode, String provinceCode) {
-        return commparaDao.getProvCodeByEparchyCode(eparchyCode, provinceCode);
+    @Cacheable(value = "actingfee_provcode")
+    public String getProvCodeByEparchyCode(String eparchyCode) {
+        return commparaDao.getProvCodeByEparchyCode(eparchyCode);
     }
 }

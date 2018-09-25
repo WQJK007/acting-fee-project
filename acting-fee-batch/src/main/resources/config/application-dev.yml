@@ -1,0 +1,10 @@
+server:
+  port: 8080
+  tomcat:
+    max-threads: 1000
+
+logs:
+  svcperform:
+    enable: true  #是否开启性能日志
+    printResult: true  #是否打印输出结果
+

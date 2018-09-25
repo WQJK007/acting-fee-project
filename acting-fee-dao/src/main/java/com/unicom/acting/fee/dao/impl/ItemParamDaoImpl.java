@@ -1,5 +1,6 @@
 package com.unicom.acting.fee.dao.impl;
 
+import com.unicom.skyark.component.jdbc.DbTypes;
 import com.unicom.skyark.component.jdbc.dao.impl.JdbcBaseDao;
 import com.unicom.skyark.component.util.StringUtil;
 import com.unicom.acting.fee.dao.ItemParamDao;
@@ -15,23 +16,23 @@ import java.util.List;
 
 @Repository
 public class ItemParamDaoImpl extends JdbcBaseDao implements ItemParamDao {
-    public List<DetailItem> getDetailItem(String provinceCode) {
+    public List<DetailItem> getDetailItem() {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT ITEM_ID,ITEM_NAME,ITEM_USE_TYPE,ADDUP_ELEM_TYPE,ITEM_CLASS,");
         sql.append("OWE_TAG,LATEFEE_CALC_TAG FROM TD_B_DETAILITEM");
-        return this.getJdbcTemplate(provinceCode).query(sql.toString(), new DetailItemMapper());
+        return this.getJdbcTemplate(DbTypes.ACT_PARA_RDS).query(sql.toString(), new DetailItemMapper());
     }
 
-    public List<CompItem> getCompItem(String provinceCode) {
+    public List<CompItem> getCompItem() {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT ITEM_ID,SUB_ITEM_ID,SUB_ITEM_NO FROM TD_B_COMPITEM");
-        return this.getJdbcTemplate(provinceCode).query(sql.toString(), new CompItemMapper());
+        return this.getJdbcTemplate(DbTypes.ACT_PARA_RDS).query(sql.toString(), new CompItemMapper());
     }
 
-    public List<ItemPriorRule> getItemPriorRule(String provinceCode) {
+    public List<ItemPriorRule> getItemPriorRule() {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT ITEM_PRIOR_RULE_ID,ITEM_CODE,ITEM_PRIORITY FROM TD_B_ITEMPRIORRULE");
-        return this.getJdbcTemplate(provinceCode).query(sql.toString(), new ItemPriorRuleMapper());
+        return this.getJdbcTemplate(DbTypes.ACT_PARA_RDS).query(sql.toString(), new ItemPriorRuleMapper());
     }
 
     //明细账目项结果集类

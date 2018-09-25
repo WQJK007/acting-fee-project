@@ -17,8 +17,7 @@ public interface FeeDerateLateFeeLogDao extends IBaseDao {
      * @param acctId
      * @param startCycleId
      * @param endCycleId
-     * @param provinceCode
      * @return
      */
-    List<FeeDerateLateFeeLog> getDerateLateFeeLog(String acctId, int startCycleId, int endCycleId, String provinceCode);
+    List<FeeDerateLateFeeLog> getDerateLateFeeLog(String acctId, int startCycleId, int endCycleId);
 }

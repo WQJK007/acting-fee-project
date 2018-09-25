@@ -1,5 +1,6 @@
 package com.unicom.acting.fee.dao.impl;
 
+import com.unicom.skyark.component.jdbc.DbTypes;
 import com.unicom.skyark.component.jdbc.dao.impl.JdbcBaseDao;
 import com.unicom.skyark.component.util.StringUtil;
 import com.unicom.acting.fee.dao.CommparaDao;
@@ -10,6 +11,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,7 +19,7 @@ import java.util.Map;
 @Repository
 public class CommparaDaoImpl extends JdbcBaseDao implements CommparaDao {
     @Override
-    public List<CommPara> getCommpara(String provinceCode) {
+    public List<CommPara> getCommpara() {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT PROVINCE_CODE,EPARCHY_CODE,PARA_ATTR,PARA_CODE,PARA_NAME,");
         sql.append("PARA_CODE1,PARA_CODE2,PARA_CODE3,PARA_CODE4,PARA_CODE5,PARA_CODE6,");
@@ -30,25 +32,24 @@ public class CommparaDaoImpl extends JdbcBaseDao implements CommparaDao {
         sql.append("DATE_FORMAT(UPDATE_TIME,'%Y-%m-%d %T') UPDATE_TIME,");
         sql.append("USE_TAG,REMARK,UPDATE_EPARCHY_CODE,UPDATE_CITY_CODE,");
         sql.append("UPDATE_DEPART_ID,UPDATE_STAFF_ID FROM TD_B_COMMPARA");
-        return this.getJdbcTemplate(provinceCode).query(sql.toString(), new CommparaMapper());
+        return this.getJdbcTemplate(DbTypes.ACT_PARA_RDS).query(sql.toString(), new CommparaMapper());
     }
 
     @Override
-    public String getParamTimeStamp(String tagCode, String provinceCode) {
+    public String getParamTimeStamp(String tagCode) {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT DATE_FORMAT(PARA_DATE7,'%Y-%m-%d %T') PARA_DATE7 ");
         sql.append("FROM TD_B_COMMPARA WHERE PARA_CODE= :VPARA_CODE");
-        Map<String, String> param = new HashMap<>();
-        param.put("VPARA_CODE", tagCode);
-        List<String> result = this.getJdbcTemplate(provinceCode).queryForList(sql.toString(), param, String.class);
-        if(!result.isEmpty()) {
+        Map param = Collections.singletonMap("VPARA_CODE", tagCode);
+        List<String> result = this.getJdbcTemplate(DbTypes.ACT_PARA_RDS).queryForList(sql.toString(), param, String.class);
+        if (!result.isEmpty()) {
             return result.get(0);
         }
         return "";
     }
 
     @Override
-    public CommPara getCommpara(String paraCode, String provinceCode, String eparchyCode, String provinceId) {
+    public CommPara getCommpara(String paraCode, String provinceCode, String eparchyCode) {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT PROVINCE_CODE,EPARCHY_CODE,PARA_ATTR,PARA_CODE,PARA_NAME,");
         sql.append("PARA_CODE1,PARA_CODE2,PARA_CODE3,PARA_CODE4,PARA_CODE5,PARA_CODE6,");
@@ -67,21 +68,21 @@ public class CommparaDaoImpl extends JdbcBaseDao implements CommparaDao {
         param.put("VPARA_CODE", paraCode);
         param.put("VEPARCHY_CODE", eparchyCode);
         param.put("VPROVINCE_CODE", provinceCode);
-        List<CommPara> resultList = this.getJdbcTemplate(provinceId).query(sql.toString(), param, new CommparaMapper());
+        List<CommPara> resultList = this.getJdbcTemplate(DbTypes.ACT_PARA_RDS).query(sql.toString(), param, new CommparaMapper());
         if (!CollectionUtils.isEmpty(resultList)) {
             return resultList.get(0);
         }
 
         //如果没有查询到结果，EPARCHY_CODE取默认ZZZZ
         param.put("VEPARCHY_CODE", "ZZZZ");
-        resultList = this.getJdbcTemplate(provinceId).query(sql.toString(), param, new CommparaMapper());
+        resultList = this.getJdbcTemplate(DbTypes.ACT_PARA_RDS).query(sql.toString(), param, new CommparaMapper());
         if (!CollectionUtils.isEmpty(resultList)) {
             return resultList.get(0);
         }
 
         //如果没有查询到结果，PROVINCE_CODE取默认ZZZZ
         param.put("VPROVINCE_CODE", "ZZZZ");
-        resultList = this.getJdbcTemplate(provinceId).query(sql.toString(), param, new CommparaMapper());
+        resultList = this.getJdbcTemplate(DbTypes.ACT_PARA_RDS).query(sql.toString(), param, new CommparaMapper());
         if (!CollectionUtils.isEmpty(resultList)) {
             return resultList.get(0);
         }
@@ -89,7 +90,7 @@ public class CommparaDaoImpl extends JdbcBaseDao implements CommparaDao {
     }
 
     @Override
-    public CommPara getCommparaByLike(String paraCode, String provinceCode, String eparchyCode, String provinceId) {
+    public CommPara getCommparaByLike(String paraCode, String provinceCode, String eparchyCode) {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT PROVINCE_CODE,EPARCHY_CODE,PARA_ATTR,PARA_CODE,PARA_NAME,");
         sql.append("PARA_CODE1,PARA_CODE2,PARA_CODE3,PARA_CODE4,PARA_CODE5,PARA_CODE6,");
@@ -102,28 +103,28 @@ public class CommparaDaoImpl extends JdbcBaseDao implements CommparaDao {
         sql.append("DATE_FORMAT(UPDATE_TIME,'%Y-%m-%d %T') UPDATE_TIME,");
         sql.append("UPDATE_EPARCHY_CODE,UPDATE_CITY_CODE,UPDATE_DEPART_ID,USE_TAG,REMARK,");
         sql.append("UPDATE_STAFF_ID FROM TD_B_COMMPARA ");
-        sql.append("WHERE PARA_CODE LIKE :VPARA_CODE"+"%");
+        sql.append("WHERE PARA_CODE LIKE :VPARA_CODE" + "%");
         sql.append("AND EPARCHY_CODE = :VEPARCHY_CODE ");
         sql.append("AND PROVINCE_CODE = :VPROVINCE_CODE ");
         Map param = new HashMap(3);
         param.put("VPARA_CODE", paraCode);
         param.put("VEPARCHY_CODE", eparchyCode);
         param.put("VPROVINCE_CODE", provinceCode);
-        List<CommPara> resultList = this.getJdbcTemplate(provinceId).query(sql.toString(), param, new CommparaMapper());
+        List<CommPara> resultList = this.getJdbcTemplate(DbTypes.ACT_PARA_RDS).query(sql.toString(), param, new CommparaMapper());
         if (!CollectionUtils.isEmpty(resultList)) {
             return resultList.get(0);
         }
 
         //如果没有查询到结果，EPARCHY_CODE取默认ZZZZ
         param.put("VEPARCHY_CODE", "ZZZZ");
-        resultList = this.getJdbcTemplate(provinceId).query(sql.toString(), param, new CommparaMapper());
+        resultList = this.getJdbcTemplate(DbTypes.ACT_PARA_RDS).query(sql.toString(), param, new CommparaMapper());
         if (!CollectionUtils.isEmpty(resultList)) {
             return resultList.get(0);
         }
 
         //如果没有查询到结果，PROVINCE_CODE取默认ZZZZ
         param.put("VPROVINCE_CODE", "ZZZZ");
-        resultList = this.getJdbcTemplate(provinceId).query(sql.toString(), param, new CommparaMapper());
+        resultList = this.getJdbcTemplate(DbTypes.ACT_PARA_RDS).query(sql.toString(), param, new CommparaMapper());
         if (!CollectionUtils.isEmpty(resultList)) {
             return resultList.get(0);
         }
@@ -131,12 +132,11 @@ public class CommparaDaoImpl extends JdbcBaseDao implements CommparaDao {
     }
 
     @Override
-    public String getProvCodeByEparchyCode(String eparchyCode, String provinceCode) {
+    public String getProvCodeByEparchyCode(String eparchyCode) {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT PROVINCE_CODE FROM TD_B_EPARCHY WHERE EPARCHY_CODE = :VEPARCHY_CODE");
-        Map param = new HashMap(1);
-        param.put("VEPARCHY_CODE", eparchyCode);
-        List<String> result = this.getJdbcTemplate(provinceCode).queryForList(sql.toString(), param, String.class);
+        Map param = Collections.singletonMap("VEPARCHY_CODE", eparchyCode);
+        List<String> result = this.getJdbcTemplate(DbTypes.ACT_PARA_RDS).queryForList(sql.toString(), param, String.class);
         if (!result.isEmpty()) {
             return result.get(0);
         }
@@ -144,13 +144,12 @@ public class CommparaDaoImpl extends JdbcBaseDao implements CommparaDao {
     }
 
     @Override
-    public String getParentTypeCode(String netTypeCode, String provinceCode) {
+    public String getParentTypeCode(String netTypeCode) {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT PARENT_TYPE_CODE FROM TD_S_NETCODE ");
         sql.append("WHERE NET_TYPE_CODE = :VNET_TYPE_CODE");
-        Map<String, String> param = new HashMap<>();
-        param.put("VNET_TYPE_CODE", netTypeCode);
-        List<String> results = this.getJdbcTemplate(provinceCode).queryForList(sql.toString(), param, String.class);
+        Map param = Collections.singletonMap("VNET_TYPE_CODE", netTypeCode);
+        List<String> results = this.getJdbcTemplate(DbTypes.ACT_PARA_RDS).queryForList(sql.toString(), param, String.class);
         if (!CollectionUtils.isEmpty(results)) {
             return results.get(0);
         }

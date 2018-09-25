@@ -1,5 +1,7 @@
 package com.unicom.acting.fee.writeoff.service.impl;
 
+import com.unicom.acting.common.domain.Account;
+import com.unicom.acting.common.domain.User;
 import com.unicom.acting.fee.writeoff.domain.TradeCommInfoIn;
 import com.unicom.skyark.component.exception.SkyArkException;
 import com.unicom.skyark.component.jdbc.DbTypes;
@@ -24,7 +26,7 @@ import java.util.List;
  * @author wangkh
  */
 @Service
-public class FeeCommServiceImpl<T,S> implements FeeCommService {
+public class FeeCommServiceImpl implements FeeCommService {
     private static final Logger logger = LoggerFactory.getLogger(FeeCommServiceImpl.class);
     @Autowired
     private WriteOffRuleService writeOffRuleService;
@@ -44,15 +46,20 @@ public class FeeCommServiceImpl<T,S> implements FeeCommService {
     private FeeBillService feeBillService;
     @Autowired
     private FeeDerateLateFeeLogService feeDerateLateFeeLogService;
+    @Autowired
+    private DatumParamRelService datumParamRelService;
+    @Autowired
+    private RealBillService realBillService;
 
     @Override
     public void getUserDatumInfo(TradeCommInfoIn tradeCommInfoIn, TradeCommInfo tradeCommInfo) {
         //调用微服务查询三户资料
-        UserDatumInfo userDatumInfo = datumService.getUserDatumByMS(tradeCommInfoIn);
+        //UserDatumInfo userDatumInfo = datumService.getUserDatumByMS(tradeCommInfoIn);
+        UserDatumInfo userDatumInfo = datumParamRelService.getUserDatum(tradeCommInfoIn);
         //充值用户
         tradeCommInfo.setMainUser(userDatumInfo.getMainUser());
         //付费账户
-        tradeCommInfo.setFeeAccount(userDatumInfo.getFeeAccount());
+        tradeCommInfo.setAccount(userDatumInfo.getAccount());
         //按用户交易
         if (!StringUtil.isEmptyCheckNullStr(tradeCommInfoIn.getWriteoffMode())
                 && "2".equals(tradeCommInfoIn.getWriteoffMode())) {
@@ -69,35 +76,33 @@ public class FeeCommServiceImpl<T,S> implements FeeCommService {
             tradeCommInfo.setPayUsers(userDatumInfo.getDefaultPayUsers());
         }
         //请求入参中的号码归属地市和省份编码替换为三户资料查询结果中的地市和省份编码
-        tradeCommInfoIn.setProvinceCode(tradeCommInfo.getFeeAccount().getProvinceCode());
-        tradeCommInfoIn.setEparchyCode(tradeCommInfo.getFeeAccount().getEparchyCode());
+        tradeCommInfoIn.setProvinceCode(tradeCommInfo.getAccount().getProvinceCode());
+        tradeCommInfoIn.setEparchyCode(tradeCommInfo.getAccount().getEparchyCode());
         //大合帐用户
         tradeCommInfoIn.setBigAcctRecvFee(userDatumInfo.isBigAcct());
     }
-
 
     @Override
     public void getEparchyCycleInfo(TradeCommInfo tradeCommInfo, String eparchyCode, String provinceCode) {
         //系统时间
         String sysdate = sysCommOperFeeService.getSysdate(TimeUtil.DATETIME_FORMAT);
-        String day = sysdate.substring(8, 10);
         //当前当期
         Cycle curCycle = null;
         //当前最大开账账期
         Cycle maxCycle = null;
-        CommPara commPara = commParaFeeService.getCommpara(PubCommParaDef.ASM_AUXACCTSTATUS_FROMCACHE,
-                provinceCode, eparchyCode, DbTypes.ACT_PARA_RDS);
+        CommPara commPara = commParaFeeService.getCommpara(ActingFeeCommparaDef.ASM_AUXACCTSTATUS_FROMCACHE,
+                provinceCode, eparchyCode);
 
         if (commPara != null && "1".equals(commPara.getParaCode1())
                 && !StringUtil.isEmptyCheckNullStr(commPara.getParaCode2())
                 && !StringUtil.isEmptyCheckNullStr(commPara.getParaCode3())
-                && day.compareTo(commPara.getParaCode2()) >= 0
-                && day.compareTo(commPara.getParaCode3()) <= 0) {
-            curCycle = cycleService.getCacheCurCycle(eparchyCode, DbTypes.ACT_PARA_RDS);
-            maxCycle = cycleService.getCacheMaxAcctCycle(eparchyCode, DbTypes.ACT_PARA_RDS);
+                && sysdate.substring(8, 10).compareTo(commPara.getParaCode2()) >= 0
+                && sysdate.substring(8, 10).compareTo(commPara.getParaCode3()) <= 0) {
+            curCycle = cycleService.getCacheCurCycle(eparchyCode);
+            maxCycle = cycleService.getCacheMaxAcctCycle(eparchyCode);
         } else {
-            curCycle = cycleService.getCurCycle(eparchyCode, DbTypes.ACT_PARA_RDS);
-            maxCycle = cycleService.getMaxAcctCycle(eparchyCode, DbTypes.ACT_PARA_RDS);
+            curCycle = cycleService.getCurCycle(eparchyCode);
+            maxCycle = cycleService.getMaxAcctCycle(eparchyCode);
         }
 
         if (curCycle == null) {
@@ -118,11 +123,17 @@ public class FeeCommServiceImpl<T,S> implements FeeCommService {
     }
 
     @Override
+    public void getWriteOffRule(WriteOffRuleInfo writeOffRuleInfo, String provinceCode, String eparchyCode, String netTypeCode) {
+        //获取销账规则
+        writeOffRuleService.getWriteOffRule(writeOffRuleInfo, eparchyCode, provinceCode, netTypeCode);
+    }
+
+    @Override
     public void getAcctBalance(TradeCommInfoIn tradeCommInfoIn, TradeCommInfo tradeCommInfo) {
-        if (tradeCommInfo.getFeeAccount() == null) {
+        if (tradeCommInfo.getAccount() == null) {
             throw new SkyArkException("没有获取账户信息，请先查询三户资料");
         }
-        FeeAccount feeAccount = tradeCommInfo.getFeeAccount();
+        Account feeAccount = tradeCommInfo.getAccount();
 
         if (tradeCommInfo.getWriteOffRuleInfo() == null) {
             throw new SkyArkException("没有加载销账规则参数");
@@ -130,18 +141,18 @@ public class FeeCommServiceImpl<T,S> implements FeeCommService {
         WriteOffRuleInfo writeOffRuleInfo = tradeCommInfo.getWriteOffRuleInfo();
 
         //获取账本
-        tradeCommInfo.setFeeAccountDeposits(acctDepositService.getAcctDepositByAcctId(feeAccount.getAcctId(), DbTypes.ACTS_DRDS));
+        tradeCommInfo.setFeeAccountDeposits(acctDepositService.getAcctDepositByAcctId(feeAccount.getAcctId()));
         //获取账本比例关系
-        tradeCommInfo.setFeeAcctBalanceRels(acctDepositService.getAcctBalanceRelByAcctId(feeAccount.getAcctId(), DbTypes.ACTS_DRDS));
+        tradeCommInfo.setFeeAcctBalanceRels(acctDepositService.getAcctBalanceRelByAcctId(feeAccount.getAcctId()));
         //获取销账规则
-        writeOffRuleService.getWriteOffRule(writeOffRuleInfo, feeAccount.getEparchyCode(), feeAccount.getProvinceCode(), feeAccount.getNetTypeCode());
+        //writeOffRuleService.getWriteOffRule(writeOffRuleInfo, feeAccount.getEparchyCode(), feeAccount.getProvinceCode(), feeAccount.getNetTypeCode());
+
         //抵扣，补收和增量出账期间需要查询帐务业务后台处理表做处理
         boolean specialState = writeOffRuleInfo.isSpecialRecvState(writeOffRuleInfo.getCurCycle());
         if (specialState) {
             //获取帐务业务后台处理表记录
-            List<FeePayLogDmn> feePayLogDmns = feePayLogService.getPayLogDmnByAcctId(feeAccount.getAcctId(), "0", DbTypes.ACT_ORDER_RDS, feeAccount.getProvinceCode());
+            List<FeePayLogDmn> feePayLogDmns = feePayLogService.getPayLogDmnByAcctId(feeAccount.getAcctId(), "0", DbTypes.ACT_RDS, feeAccount.getProvinceCode());
             if (!CollectionUtils.isEmpty(feePayLogDmns)) {
-                tradeCommInfo.setExistsPayLogDmn(true);
                 for (FeePayLogDmn feePayLogDmn : feePayLogDmns) {
                     acctDepositService.genAcctDepositByPayLogDmn(tradeCommInfoIn, feePayLogDmn, tradeCommInfo);
                 }
@@ -153,11 +164,11 @@ public class FeeCommServiceImpl<T,S> implements FeeCommService {
 
     @Override
     public void getOweBill(TradeCommInfoIn tradeCommInfoIn, TradeCommInfo tradeCommInfo) {
-        if (tradeCommInfo.getFeeAccount() == null) {
+        if (tradeCommInfo.getAccount() == null) {
             throw new SkyArkException("没有获取账户信息，请先查询三户资料");
         }
 
-        FeeAccount feeAccount = tradeCommInfo.getFeeAccount();
+        Account feeAccount = tradeCommInfo.getAccount();
         if (tradeCommInfo.getWriteOffRuleInfo() == null) {
             throw new SkyArkException("没有加载销账规则参数");
         }
@@ -177,16 +188,22 @@ public class FeeCommServiceImpl<T,S> implements FeeCommService {
         if (tradeCommInfo.getMainUser() != null) {
             userId = tradeCommInfo.getMainUser().getUserId();
         }
-        //获取实时账单  暂时屏蔽
-        //List<FeeBill> realFeeBills = feeBillService.getRealBillFromMemDB(tradeCommInfoIn, feeAccount.getAcctId(), userId, preCurCycleId, currCycleId);
+        //获取实时账单
         List<FeeBill> realFeeBills = new ArrayList();
+        if (!"1".equals(tradeCommInfoIn.getBatchDealTag())) {
+            realFeeBills = realBillService.getRealBillFromMemDB(tradeCommInfoIn, feeAccount.getAcctId(), userId, preCurCycleId, currCycleId);
+        } else {
+            realFeeBills = tradeCommInfo.getFeeBills();
+        }
+
+
         //获取往月账单
         List<FeeBill> feeBills = new ArrayList();
         if ("1".equals(tradeCommInfoIn.getQryBillType())
                 && "2".equals(tradeCommInfoIn.getWriteoffMode())) {
-            feeBills = feeBillService.getBillOweByUserId(acctId, userId, ActingFeePubDef.MIN_CYCLE_ID, tmpAcctCycleId, DbTypes.ACTING_DRDS);
+            feeBills = feeBillService.getBillOweByUserId(acctId, userId, ActingFeePubDef.MIN_CYCLE_ID, tmpAcctCycleId);
         } else {
-            feeBills = feeBillService.getBillOweByAcctId(acctId, ActingFeePubDef.MIN_CYCLE_ID, tmpAcctCycleId, DbTypes.ACTING_DRDS);
+            feeBills = feeBillService.getBillOweByAcctId(acctId, ActingFeePubDef.MIN_CYCLE_ID, tmpAcctCycleId);
         }
 
 
@@ -196,10 +213,11 @@ public class FeeCommServiceImpl<T,S> implements FeeCommService {
          *  因为这个时候开帐标识use_tag='0'有两个月的实时话费，而实际上已经有帐单入库了
          *  多个抵扣入库进程没有办法控制一起完成
          */
-        if (cycleService.isDrecvPeriod(writeOffRuleInfo.getCurCycle())) {
+        if (cycleService.isDrecvPeriod(writeOffRuleInfo.getCurCycle())
+                && !CollectionUtils.isEmpty(realFeeBills)) {
             if (preCurCycleId < currCycleId) {
                 realFeeBills = feeBillService.removeWriteOffRealBill(feeBills, realFeeBills,
-                        acctId, preCurCycleId, DbTypes.ACTING_DRDS);
+                        acctId, preCurCycleId);
             }
         }
 
@@ -221,14 +239,14 @@ public class FeeCommServiceImpl<T,S> implements FeeCommService {
         feeBills.addAll(realFeeBills);
         //坏账缴费时需要加载坏账账单
         if (!StringUtil.isEmpty(tradeCommInfoIn.getBadTypeCode())
-                && datumService.isBadBillUser(acctId, DbTypes.ACTING_DRDS)) {
+                && datumService.isBadBillUser(acctId)) {
             String badTypeCode = tradeCommInfoIn.getBadTypeCode();
             //捞取坏账账单
             List<FeeBill> badFeeBills = feeBillService.getBadBillOweByAcctId(acctId, maxAcctCycleId,
-                    tmpAcctCycleId, DbTypes.ACTING_DRDS);
+                    tmpAcctCycleId);
             if (!CollectionUtils.isEmpty(badFeeBills)) {
                 //坏账缴费处理方式
-                CommPara commPara = writeOffRuleInfo.getCommpara(PubCommParaDef.ASM_BADBILL_PAYFEE);
+                CommPara commPara = writeOffRuleInfo.getCommpara(ActingFeeCommparaDef.ASM_BADBILL_PAYFEE);
                 if (commPara == null) {
                     throw new SkyArkException("ASM_BADBILL_PAYFEE参数没有配置!");
                 }
@@ -286,10 +304,10 @@ public class FeeCommServiceImpl<T,S> implements FeeCommService {
 
     @Override
     public boolean ifCalcLateFee(TradeCommInfoIn tradeCommInfoIn, TradeCommInfo tradeCommInfo) {
-        if (tradeCommInfo.getFeeAccount() == null) {
+        if (tradeCommInfo.getAccount() == null) {
             throw new SkyArkException("没有获取账户信息，请先查询三户资料");
         }
-        FeeAccount feeAccount = tradeCommInfo.getFeeAccount();
+        Account feeAccount = tradeCommInfo.getAccount();
 
         if (tradeCommInfo.getMainUser() == null) {
             throw new SkyArkException("没有获取用户信息，请先查询三户资料");
@@ -297,7 +315,7 @@ public class FeeCommServiceImpl<T,S> implements FeeCommService {
 
         //免滞纳金计算用户不计算滞纳金
         if (datumService.isNoCalcLateFeeUser("-1",
-                feeAccount.getAcctId(), DbTypes.ACTING_DRDS)) {
+                feeAccount.getAcctId())) {
             return true;
         }
 
@@ -306,7 +324,7 @@ public class FeeCommServiceImpl<T,S> implements FeeCommService {
         }
         WriteOffRuleInfo writeOffRuleInfo = tradeCommInfo.getWriteOffRuleInfo();
         //取得不算滞纳金的付费方式
-        CommPara commPara = writeOffRuleInfo.getCommpara(PubCommParaDef.ASM_CALCLATEFEE_PAYMODE_LIMIT);
+        CommPara commPara = writeOffRuleInfo.getCommpara(ActingFeeCommparaDef.ASM_CALCLATEFEE_PAYMODE_LIMIT);
         if (commPara != null && !StringUtil.isEmptyCheckNullStr(commPara.getParaCode1())) {
             String[] payFeeModes = commPara.getParaCode1().split("\\|");
             for (String payFeeMode : payFeeModes) {
@@ -317,7 +335,7 @@ public class FeeCommServiceImpl<T,S> implements FeeCommService {
             }
         }
         //配置参数启用，只有离网用户计算滞纳金
-        CommPara userCalcPara = writeOffRuleInfo.getCommpara(PubCommParaDef.ASM_CALCLATEFEE_DESTROY_USER);
+        CommPara userCalcPara = writeOffRuleInfo.getCommpara(ActingFeeCommparaDef.ASM_CALCLATEFEE_DESTROY_USER);
         if (userCalcPara != null && "1".equals(userCalcPara.getParaCode1())
                 && "0".equals(tradeCommInfo.getMainUser().getRemoveTag())) {
             return true;
@@ -344,30 +362,24 @@ public class FeeCommServiceImpl<T,S> implements FeeCommService {
                 minCycleId = feeBill.getCycleId();
             }
         }
-        List<FeeDerateLateFeeLog> feeDerateLateFeeLogs = feeDerateLateFeeLogService.getDerateLateFeeLog(acctId, minCycleId, maxCycleId, DbTypes.ACTING_DRDS);
+        List<FeeDerateLateFeeLog> feeDerateLateFeeLogs = feeDerateLateFeeLogService.getDerateLateFeeLog(acctId, minCycleId, maxCycleId);
         tradeCommInfo.setFeeDerateLateFeeLogs(feeDerateLateFeeLogs);
     }
 
     @Override
-    public void getAcctPaymentCycle(TradeCommInfo tradeCommInfo, String acctId, String provinceCode) {
-        tradeCommInfo.setActPaymentCycle(datumService.getAcctPaymentCycle(acctId, provinceCode));
+    public void getAcctPaymentCycle(TradeCommInfo tradeCommInfo, String acctId) {
+        tradeCommInfo.setActPaymentCycle(datumService.getAcctPaymentCycle(acctId));
     }
 
-    /**
-     * 托收在途
-     *
-     * @param tradeCommInfoIn
-     * @param tradeCommInfo
-     * @return
-     */
-    private boolean ifBillConsigning(TradeCommInfoIn tradeCommInfoIn, TradeCommInfo tradeCommInfo) {
+    @Override
+    public boolean ifBillConsigning(TradeCommInfoIn tradeCommInfoIn, TradeCommInfo tradeCommInfo) {
         //操作对象不能为空
         if (tradeCommInfo.getWriteOffRuleInfo() == null
                 || CollectionUtils.isEmpty(tradeCommInfo.getFeeBills())) {
             return false;
         }
 
-        CommPara commPara = tradeCommInfo.getWriteOffRuleInfo().getCommpara(PubCommParaDef.ASM_CONSIGN_CAN_RECV);
+        CommPara commPara = tradeCommInfo.getWriteOffRuleInfo().getCommpara(ActingFeeCommparaDef.ASM_CONSIGN_CAN_RECV);
         if (commPara == null) {
             throw new SkyArkException("ASM_CONSIGN_CAN_RECV参数没有配置!");
         }
@@ -389,22 +401,16 @@ public class FeeCommServiceImpl<T,S> implements FeeCommService {
         return false;
     }
 
-    /**
-     * 托收账户
-     *
-     * @param tradeCommInfoIn
-     * @param tradeCommInfo
-     * @return
-     */
-    private boolean ifConsignPayMode(TradeCommInfoIn tradeCommInfoIn, TradeCommInfo tradeCommInfo) {
+    @Override
+    public boolean ifConsignPayMode(TradeCommInfoIn tradeCommInfoIn, TradeCommInfo tradeCommInfo) {
         //操作对象不能为空
         if (tradeCommInfo.getWriteOffRuleInfo() == null
                 || CollectionUtils.isEmpty(tradeCommInfo.getFeeBills())
-                || tradeCommInfo.getFeeAccount() == null) {
+                || tradeCommInfo.getAccount() == null) {
             return false;
         }
 
-        CommPara commPara = tradeCommInfo.getWriteOffRuleInfo().getCommpara(PubCommParaDef.ASM_CONSIGN_CAN_RECV);
+        CommPara commPara = tradeCommInfo.getWriteOffRuleInfo().getCommpara(ActingFeeCommparaDef.ASM_CONSIGN_CAN_RECV);
         if (commPara == null) {
             throw new SkyArkException("ASM_CONSIGN_CAN_RECV参数没有配置!");
         }
@@ -415,13 +421,13 @@ public class FeeCommServiceImpl<T,S> implements FeeCommService {
                 && (tradeCommInfoIn.getPaymentId() != 100004
                 && tradeCommInfoIn.getPaymentId() != 1000041
                 && tradeCommInfoIn.getPaymentId() != 1000044)) {
-            CommPara rCommPara = tradeCommInfo.getWriteOffRuleInfo().getCommpara(PubCommParaDef.ASM_CONSIGN_PAY_MODE);
+            CommPara rCommPara = tradeCommInfo.getWriteOffRuleInfo().getCommpara(ActingFeeCommparaDef.ASM_CONSIGN_PAY_MODE);
             if (rCommPara == null) {
                 throw new SkyArkException("ASM_CONSIGN_PAY_MODE参数没有配置!");
             }
             String[] consignPayMode = rCommPara.getParaCode1().split("\\|");
             //托收在途判断
-            FeeAccount feeAccount = tradeCommInfo.getFeeAccount();
+            Account feeAccount = tradeCommInfo.getAccount();
             for (String payFeeMode : consignPayMode) {
                 if (payFeeMode.equals(feeAccount.getPayModeCode())) {
                     return true;
@@ -431,14 +437,8 @@ public class FeeCommServiceImpl<T,S> implements FeeCommService {
         return false;
     }
 
-    /**
-     * 代理商预打发票
-     *
-     * @param tradeCommInfoIn
-     * @param tradeCommInfo
-     * @return
-     */
-    private boolean ifPrePrintInvoice(TradeCommInfoIn tradeCommInfoIn, TradeCommInfo tradeCommInfo) {
+    @Override
+    public boolean ifPrePrintInvoice(TradeCommInfoIn tradeCommInfoIn, TradeCommInfo tradeCommInfo) {
         if ("15000".equals(tradeCommInfoIn.getChannelId())) {
             return false;
         }
@@ -448,7 +448,7 @@ public class FeeCommServiceImpl<T,S> implements FeeCommService {
                 || CollectionUtils.isEmpty(tradeCommInfo.getFeeBills())) {
             return false;
         }
-        CommPara commPara = tradeCommInfo.getWriteOffRuleInfo().getCommpara(PubCommParaDef.ASM_PRE_PRINTINVOICE_CAN_RECV);
+        CommPara commPara = tradeCommInfo.getWriteOffRuleInfo().getCommpara(ActingFeeCommparaDef.ASM_PRE_PRINTINVOICE_CAN_RECV);
         if (commPara == null) {
             throw new SkyArkException("ASM_PRE_PRINTINVOICE_CAN_RECV参数没有配置!");
         }
@@ -467,18 +467,12 @@ public class FeeCommServiceImpl<T,S> implements FeeCommService {
         return false;
     }
 
-    /**
-     * 电子赠款停机状态不能赠送
-     *
-     * @param mainUser
-     * @param paymentId
-     * @param writeOffRuleInfo
-     */
-    private void elecPresentLimit(User mainUser, int paymentId, WriteOffRuleInfo writeOffRuleInfo) {
+    @Override
+    public void elecPresentLimit(User mainUser, int paymentId, WriteOffRuleInfo writeOffRuleInfo) {
         String userStateCode = mainUser.getServiceStateCode();
         if (!StringUtil.isEmptyCheckNullStr(mainUser.getServiceStateCode())
                 && !"0".equals(userStateCode) && !"N".equals(userStateCode)) {
-            CommPara commPara1 = writeOffRuleInfo.getCommpara(PubCommParaDef.ASM_PRESENT_LIMITPAYMENT);
+            CommPara commPara1 = writeOffRuleInfo.getCommpara(ActingFeeCommparaDef.ASM_PRESENT_LIMITPAYMENT);
             if (commPara1 == null) {
                 throw new SkyArkException("ASM_PRESENT_LIMITPAYMENT参数没有配置!");
             }

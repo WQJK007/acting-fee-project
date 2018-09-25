@@ -1,5 +1,6 @@
 package com.unicom.acting.fee.writeoff.service.impl;
 
+import com.unicom.acting.common.domain.Account;
 import com.unicom.acting.fee.dao.FeeAccountDepositDao;
 import com.unicom.acting.fee.domain.FeeAccountDeposit;
 import com.unicom.acting.fee.writeoff.domain.TradeCommInfoIn;
@@ -34,22 +35,22 @@ public class AcctDepositServiceImpl implements AcctDepositService {
     private SysCommOperFeeService sysCommOperFeeService;
 
     @Override
-    public List<FeeAccountDeposit> getAcctDepositByAcctId(String acctId, String provinceCode) {
-        return feeAccountDepositDao.getAcctDepositByAcctId(acctId, provinceCode);
+    public List<FeeAccountDeposit> getAcctDepositByAcctId(String acctId) {
+        return feeAccountDepositDao.getAcctDepositByAcctId(acctId);
     }
 
     @Override
-    public List<FeeAcctBalanceRel> getAcctBalanceRelByAcctId(String acctId, String provinceCode) {
-        return feeAccountDepositDao.getAcctBalanceRelByAcctId(acctId, provinceCode);
+    public List<FeeAcctBalanceRel> getAcctBalanceRelByAcctId(String acctId) {
+        return feeAccountDepositDao.getAcctBalanceRelByAcctId(acctId);
     }
 
     @Override
     public void genAcctDepositByPayLogDmn(TradeCommInfoIn tradeCommInfoIn, FeePayLogDmn feePayLogDmn, TradeCommInfo tradeCommInfo) {
         //异常信息提示
-        if (tradeCommInfo.getFeeAccount() == null || tradeCommInfo.getWriteOffRuleInfo() == null) {
+        if (tradeCommInfo.getAccount() == null || tradeCommInfo.getWriteOffRuleInfo() == null) {
             return;
         }
-        FeeAccount feeAccount = tradeCommInfo.getFeeAccount();
+        Account feeAccount = tradeCommInfo.getAccount();
         WriteOffRuleInfo writeOffRuleInfo = tradeCommInfo.getWriteOffRuleInfo();
         PaymentDeposit paymentDeposit = writeOffRuleInfo.getPaymentDeposit(
                 feePayLogDmn.getPaymentId(), feePayLogDmn.getPayFeeModeCode());
@@ -103,10 +104,10 @@ public class AcctDepositServiceImpl implements AcctDepositService {
         //没有可用的帐本
         if (!find) {
             //账本序列
-            String acctBalanceId = sysCommOperFeeService.getSequence(tradeCommInfoIn.getEparchyCode(),
-                    ActingFeePubDef.SEQ_ACCTBALANCE_ID, tradeCommInfoIn.getProvinceCode());
+            String acctBalanceId = sysCommOperFeeService.getActsSequence(ActingFeePubDef.SEQ_ACCTBALANCEID_TABNAME,
+                    ActingFeePubDef.SEQ_ACCTBALANCEID_COLUMNNAME , tradeCommInfoIn.getProvinceCode());
             if (acctBalanceId == null || "".equals(acctBalanceId)) {
-                throw new SkyArkException("获取账本实例失败!SEQ_ACCTBALANCE_ID");
+                throw new SkyArkException("获取账本实例失败!SEQ_ACCTBALANCEID_TABNAME");
             }
 
             feeAccountDeposit.setAcctBalanceId(acctBalanceId);

@@ -1,9 +1,12 @@
 package com.unicom.acting.fee.writeoff.service.impl;
 
+import com.unicom.acting.common.sequence.service.SequenceService;
 import com.unicom.acting.fee.domain.ActingFeePubDef;
 import com.unicom.skyark.component.common.constants.SysTypes;
 import com.unicom.skyark.component.exception.SkyArkException;
+import com.unicom.skyark.component.jdbc.DbTypes;
 import com.unicom.skyark.component.util.JsonUtil;
+import com.unicom.skyark.component.util.StringUtil;
 import com.unicom.skyark.component.web.data.RequestEntity;
 import com.unicom.skyark.component.web.data.Rsp;
 import com.unicom.skyark.component.web.rest.RestClient;
@@ -25,6 +28,8 @@ import java.util.*;
 public class SysCommOperFeeServiceImpl implements SysCommOperFeeService {
     @Autowired
     private RestClient restClient;
+    @Autowired
+    private SequenceService sequenceService;
 
     @Override
     public String getSysdate(String fmt) {
@@ -57,6 +62,48 @@ public class SysCommOperFeeServiceImpl implements SysCommOperFeeService {
         }
         if (sqeList.size() != preCount) {
             throw new SkyArkException("获取序列" + seqName + "个数和实际需求个数不一致!");
+        }
+        return sqeList;
+    }
+
+    @Override
+    public String getActsSequence(String tabName, String columnName, String provinceCode) {
+        List<String> sqeList = sequenceService.getSequence(tabName, columnName, 1, provinceCode, DbTypes.ACTS_DRDS);
+        if (CollectionUtils.isEmpty(sqeList) || StringUtil.isEmptyCheckNullStr(sqeList.get(0))) {
+            throw new SkyArkException("获取" + tabName.toUpperCase() + "表" + columnName + "列对应流水失败");
+        }
+        return sqeList.get(0);
+    }
+
+    @Override
+    public List<String> getActsSequence(String tabName, String columnName, int seqCount, String provinceCode) {
+        List<String> sqeList = sequenceService.getSequence(tabName, columnName, seqCount, provinceCode, DbTypes.ACTS_DRDS);
+        if (CollectionUtils.isEmpty(sqeList)) {
+            throw new SkyArkException("获取" + tabName.toUpperCase() + "表" + columnName + "列对应流水失败");
+        }
+        if (sqeList.size() != seqCount) {
+            throw new SkyArkException("获取" + tabName.toUpperCase() + "表" + columnName + "列个数和实际需求个数不一致!");
+        }
+        return sqeList;
+    }
+
+    @Override
+    public String getActingSequence(String tabName, String columnName, String provinceCode) {
+        List<String> sqeList = sequenceService.getSequence(tabName, columnName, 1, provinceCode, DbTypes.ACTING_DRDS);
+        if (CollectionUtils.isEmpty(sqeList) || StringUtil.isEmptyCheckNullStr(sqeList.get(0))) {
+            throw new SkyArkException("获取" + tabName.toUpperCase() + "表" + columnName + "列对应流水失败");
+        }
+        return sqeList.get(0);
+    }
+
+    @Override
+    public List<String> getActingSequence(String tabName, String columnName, int seqCount, String provinceCode) {
+        List<String> sqeList = sequenceService.getSequence(tabName, columnName, seqCount, provinceCode, DbTypes.ACTING_DRDS);
+        if (CollectionUtils.isEmpty(sqeList)) {
+            throw new SkyArkException("获取" + tabName.toUpperCase() + "表" + columnName + "列对应流水失败");
+        }
+        if (sqeList.size() != seqCount) {
+            throw new SkyArkException("获取" + tabName.toUpperCase() + "表" + columnName + "列个数和实际需求个数不一致!");
         }
         return sqeList;
     }

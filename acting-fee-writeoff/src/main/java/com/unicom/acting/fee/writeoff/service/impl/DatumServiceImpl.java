@@ -48,6 +48,15 @@ public class DatumServiceImpl implements DatumService {
         Map<String, String> reqParam = new HashMap<>();
         if (!StringUtil.isEmptyCheckNullStr(tradeCommInfoIn.getAcctId())) {
             reqParam.put("ACCT_ID", tradeCommInfoIn.getAcctId());
+
+            if (!StringUtil.isEmptyCheckNullStr(tradeCommInfoIn.getSerialNumber())) {
+                reqParam.put("SERIAL_NUMBER", tradeCommInfoIn.getSerialNumber());
+            }
+
+            if (!StringUtil.isEmptyCheckNullStr(tradeCommInfoIn.getUserId())) {
+                reqParam.put("USER_ID", tradeCommInfoIn.getUserId());
+            }
+
         } else {
             if (StringUtil.isEmptyCheckNullStr(tradeCommInfoIn.getSerialNumber())
                     && StringUtil.isEmptyCheckNullStr(tradeCommInfoIn.getUserId())) {
@@ -90,93 +99,93 @@ public class DatumServiceImpl implements DatumService {
     }
 
     @Override
-    public FeeAcctPaymentCycle getAcctPaymentCycle(String acctId, String provinceCode) {
-        return feeAccountDao.getAcctPaymentCycle(acctId, provinceCode);
+    public FeeAcctPaymentCycle getAcctPaymentCycle(String acctId) {
+        return feeAccountDao.getAcctPaymentCycle(acctId);
     }
 
     @Override
-    public boolean isBadBillUser(String acctId, String provinceCode) {
-        return feeUserOtherInfoDao.isBadBillUser(acctId, provinceCode);
+    public boolean isBadBillUser(String acctId) {
+        return feeUserOtherInfoDao.isBadBillUser(acctId);
     }
 
     @Override
-    public boolean isNoCalcLateFeeUser(String userId, String acctId, String provinceCode) {
-        return feeUserOtherInfoDao.isNoCalcLateFeeUser(userId, acctId, provinceCode);
+    public boolean isNoCalcLateFeeUser(String userId, String acctId) {
+        return feeUserOtherInfoDao.isNoCalcLateFeeUser(userId, acctId);
     }
 
     private UserDatumInfo formateUserDatum(DefaultUsersInfoRsp userDatumRsp) {
-        MainUser datumRecvInfo = userDatumRsp.getMainUser();
-        if (datumRecvInfo == null) {
-            throw new SkyArkException("调用用户资料查询微服务异常，没有返回三户信息");
-        }
-        UserDatumInfo userDatumInfo = new UserDatumInfo();
-        //设置账户信息
-        FeeAccount feeAccount = new FeeAccount();
-        feeAccount.setAcctId(datumRecvInfo.getAcctId());
-        feeAccount.setCustId(datumRecvInfo.getCustId());
-        feeAccount.setProvinceCode(datumRecvInfo.getProvinceCode());
-        feeAccount.setEparchyCode(datumRecvInfo.getEparchyCode());
-        feeAccount.setCityCode(datumRecvInfo.getCityCode());
-        feeAccount.setNetTypeCode(datumRecvInfo.getaNetTypeCode());
-        feeAccount.setPayModeCode(datumRecvInfo.getPayModeCode());
-        feeAccount.setPayName(datumRecvInfo.getPayName());
-        userDatumInfo.setFeeAccount(feeAccount);
-
-        //设置用户信息
-        User mainUser = new User();
-        mainUser.setUserId(datumRecvInfo.getUserId());
-        mainUser.setSerialNumber(datumRecvInfo.getSerialNumber());
-        mainUser.setNetTypeCode(datumRecvInfo.getuNetTypeCode());
-        mainUser.setProvinceCode(datumRecvInfo.getuProvinceCode());
-        mainUser.setEparchyCode(datumRecvInfo.getuEparchyCode());
-        mainUser.setOpenMode(datumRecvInfo.getOpenMode());
-
-        if (!StringUtil.isEmptyCheckNullStr(datumRecvInfo.getCreditValue())) {
-            mainUser.setCreditValue(Long.parseLong(datumRecvInfo.getCreditValue()));
-        }
-        mainUser.setRemoveTag(datumRecvInfo.getRemoveTag());
-        mainUser.setServiceStateCode(datumRecvInfo.getServiceStateCode());
-        mainUser.setPrepayTag(datumRecvInfo.getPrepayTag());
-        mainUser.setBrandCode(datumRecvInfo.getBrandCode());
-        if (!StringUtil.isEmptyCheckNullStr(datumRecvInfo.getDestroyDate())) {
-            mainUser.setDestroyDate(datumRecvInfo.getDestroyDate());
-        } else {
-            mainUser.setDestroyDate("");
-        }
-        userDatumInfo.setMainUser(mainUser);
-
-        if ("1".equals(datumRecvInfo.getDhzFlag())) {
-            //大合账用户走异步缴费
-            userDatumInfo.setBigAcct(true);
-            return userDatumInfo;
-        } else {
-            //非大合帐用户缴费
-            userDatumInfo.setBigAcct(false);
-        }
-
-        if (StringUtil.isEmptyCheckNullStr(feeAccount.getAcctId())
-                || StringUtil.isEmptyCheckNullStr(mainUser.getUserId())
-                || StringUtil.isEmptyCheckNullStr(mainUser.getSerialNumber())) {
-            throw new SkyArkException("没有查询到账户资料！");
-        }
-
-        if (CollectionUtils.isEmpty(userDatumRsp.getDefaultUsers())) {
-            throw new SkyArkException("该帐户下的用户付费关系都已失效，请按照服务号码或者用户标识进行缴费");
-        }
-        //默认付费用户信息
-        List<User> defaultPayUserList = new ArrayList(userDatumRsp.getDefaultUsers().size());
-        for (UserInfoRsp userInfoRsp : userDatumRsp.getDefaultUsers()) {
-            User user = new User();
-            user.setUserId(userInfoRsp.getUserId());
-            user.setDestroyDate(userInfoRsp.getDestroyDate());
-            user.setEparchyCode(userInfoRsp.getEparchyCode());
-            user.setSerialNumber(userInfoRsp.getSerialNumber());
-            user.setNetTypeCode(userInfoRsp.getNetTypeCode());
-            user.setRemoveTag(userInfoRsp.getRemoveTag());
-            defaultPayUserList.add(user);
-        }
-        userDatumInfo.setDefaultPayUsers(defaultPayUserList);
-        return userDatumInfo;
+//        MainUser datumRecvInfo = userDatumRsp.getMainUser();
+//        if (datumRecvInfo == null) {
+//            throw new SkyArkException("调用用户资料查询微服务异常，没有返回三户信息");
+//        }
+//        UserDatumInfo userDatumInfo = new UserDatumInfo();
+//        //设置账户信息
+//        FeeAccount feeAccount = new FeeAccount();
+//        feeAccount.setAcctId(datumRecvInfo.getAcctId());
+//        feeAccount.setCustId(datumRecvInfo.getCustId());
+//        feeAccount.setProvinceCode(datumRecvInfo.getProvinceCode());
+//        feeAccount.setEparchyCode(datumRecvInfo.getEparchyCode());
+//        feeAccount.setCityCode(datumRecvInfo.getCityCode());
+//        feeAccount.setNetTypeCode(datumRecvInfo.getaNetTypeCode());
+//        feeAccount.setPayModeCode(datumRecvInfo.getPayModeCode());
+//        feeAccount.setPayName(datumRecvInfo.getPayName());
+//        userDatumInfo.setFeeAccount(feeAccount);
+//
+//        //设置用户信息
+//        User mainUser = new User();
+//        mainUser.setUserId(datumRecvInfo.getUserId());
+//        mainUser.setSerialNumber(datumRecvInfo.getSerialNumber());
+//        mainUser.setNetTypeCode(datumRecvInfo.getuNetTypeCode());
+//        mainUser.setProvinceCode(datumRecvInfo.getuProvinceCode());
+//        mainUser.setEparchyCode(datumRecvInfo.getuEparchyCode());
+//        mainUser.setOpenMode(datumRecvInfo.getOpenMode());
+//
+//        if (!StringUtil.isEmptyCheckNullStr(datumRecvInfo.getCreditValue())) {
+//            mainUser.setCreditValue(Long.parseLong(datumRecvInfo.getCreditValue()));
+//        }
+//        mainUser.setRemoveTag(datumRecvInfo.getRemoveTag());
+//        mainUser.setServiceStateCode(datumRecvInfo.getServiceStateCode());
+//        mainUser.setPrepayTag(datumRecvInfo.getPrepayTag());
+//        mainUser.setBrandCode(datumRecvInfo.getBrandCode());
+//        if (!StringUtil.isEmptyCheckNullStr(datumRecvInfo.getDestroyDate())) {
+//            mainUser.setDestroyDate(datumRecvInfo.getDestroyDate());
+//        } else {
+//            mainUser.setDestroyDate("");
+//        }
+//        userDatumInfo.setMainUser(mainUser);
+//
+//        if ("1".equals(datumRecvInfo.getDhzFlag())) {
+//            //大合账用户走异步缴费
+//            userDatumInfo.setBigAcct(true);
+//            return userDatumInfo;
+//        } else {
+//            //非大合帐用户缴费
+//            userDatumInfo.setBigAcct(false);
+//        }
+//
+//        if (StringUtil.isEmptyCheckNullStr(feeAccount.getAcctId())
+//                || StringUtil.isEmptyCheckNullStr(mainUser.getUserId())
+//                || StringUtil.isEmptyCheckNullStr(mainUser.getSerialNumber())) {
+//            throw new SkyArkException("没有查询到账户资料！");
+//        }
+//
+//        if (CollectionUtils.isEmpty(userDatumRsp.getDefaultUsers())) {
+//            throw new SkyArkException("该帐户下的用户付费关系都已失效，请按照服务号码或者用户标识进行缴费");
+//        }
+//        //默认付费用户信息
+//        List<User> defaultPayUserList = new ArrayList(userDatumRsp.getDefaultUsers().size());
+//        for (UserInfoRsp userInfoRsp : userDatumRsp.getDefaultUsers()) {
+//            User user = new User();
+//            user.setUserId(userInfoRsp.getUserId());
+//            user.setDestroyDate(userInfoRsp.getDestroyDate());
+//            user.setEparchyCode(userInfoRsp.getEparchyCode());
+//            user.setSerialNumber(userInfoRsp.getSerialNumber());
+//            user.setNetTypeCode(userInfoRsp.getNetTypeCode());
+//            user.setRemoveTag(userInfoRsp.getRemoveTag());
+//            defaultPayUserList.add(user);
+//        }
+//        userDatumInfo.setDefaultPayUsers(defaultPayUserList);
+        return null;
     }
 
 

@@ -15,16 +15,14 @@ public interface RuleEparchyParamDao extends IBaseDao {
     /**
      * 获取地市销账规则全集
      *
-     * @param provinceCode
      * @return
      */
-    List<RuleEparchy> getRuleEparchy(String provinceCode);
+    List<RuleEparchy> getRuleEparchy();
 
     /**
      * 获取滞纳金计算规则全集
      *
-     * @param provinceCode
      * @return
      */
-    List<LateCalPara> getLateCalPara(String provinceCode);
+    List<LateCalPara> getLateCalPara();
 }

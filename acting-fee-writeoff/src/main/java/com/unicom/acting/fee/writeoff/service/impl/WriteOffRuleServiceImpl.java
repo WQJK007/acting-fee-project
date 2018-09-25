@@ -33,45 +33,45 @@ public class WriteOffRuleServiceImpl implements WriteOffRuleService {
 
 
     @Override
-    public void loadWriteOffParam(String provinceCode) {
+    public void loadWriteOffParam() {
         //地市销账规则
-        List<RuleEparchy> vRuleEparchy = ruleEparchyParamDao.getRuleEparchy(provinceCode);
+        List<RuleEparchy> vRuleEparchy = ruleEparchyParamDao.getRuleEparchy();
         logger.debug("地市销账规则参数 vRuleEparchy.size = " + vRuleEparchy.size());
 
         //账目项优先级
-        List<ItemPriorRule> vItemPriorRule = itemParamDao.getItemPriorRule(provinceCode);
+        List<ItemPriorRule> vItemPriorRule = itemParamDao.getItemPriorRule();
         logger.debug("账目项优先级规则参数 vItemPriorRule.size = " + vItemPriorRule.size());
 
         //明细账目项
-        List<DetailItem> vDetailItem = itemParamDao.getDetailItem(provinceCode);
+        List<DetailItem> vDetailItem = itemParamDao.getDetailItem();
         logger.debug("明细账目项参数 vDetailItem.size = " + vDetailItem.size());
 
         //组合账目项
-        List<CompItem> vCompItem = itemParamDao.getCompItem(provinceCode);
+        List<CompItem> vCompItem = itemParamDao.getCompItem();
         logger.debug("组合账目项参数 vCompItem.size = " + vCompItem.size());
 
         //账本科目优先级
-        List<DepositPriorRule> vDepositPriorRule = depositParamDao.getDepositPriorRule(provinceCode);
+        List<DepositPriorRule> vDepositPriorRule = depositParamDao.getDepositPriorRule();
         logger.debug("账本科目优先规则参数 vDepositPriorRule.size = " + vDepositPriorRule.size());
 
         //账本科目限定关系
-        List<DepositLimitRule> vDepositLimitRule = depositParamDao.getDepositLimitRule(provinceCode);
+        List<DepositLimitRule> vDepositLimitRule = depositParamDao.getDepositLimitRule();
         logger.debug("账本科目限定规则参数 vDepositLimitRule.size = " + vDepositLimitRule.size());
 
         //储值方式和账本科目关系
-        List<PaymentDeposit> vPaymentDeposit = depositParamDao.getPaymentDeposit(provinceCode);
+        List<PaymentDeposit> vPaymentDeposit = depositParamDao.getPaymentDeposit();
         logger.debug("储值方式和账本科目映射关系参数 vPaymentDeposit.size = " + vPaymentDeposit.size());
 
         //帐务通用参数
-        List<CommPara> vCommPara = commparaDao.getCommpara(provinceCode);
+        List<CommPara> vCommPara = commparaDao.getCommpara();
         logger.debug("帐务通用参数 vCommPara.size = " + vCommPara.size());
 
         //滞纳金计算参数
-        List<LateCalPara> vLateCalPara = ruleEparchyParamDao.getLateCalPara(provinceCode);
+        List<LateCalPara> vLateCalPara = ruleEparchyParamDao.getLateCalPara();
         logger.debug("滞纳金计算参数 vLateCalPara.size = " + vLateCalPara.size());
 
         //账期
-        List<Cycle> vCycle = cycleDao.getCycle(provinceCode);
+        List<Cycle> vCycle = cycleDao.getCycle();
         logger.debug("账期参数 vCycle.size = " + vCycle.size());
 
         WriteOffRuleStaticInfo.setAllVRuleeparchy(vRuleEparchy);
@@ -84,6 +84,19 @@ public class WriteOffRuleServiceImpl implements WriteOffRuleService {
         WriteOffRuleStaticInfo.setAllMCycle(vCycle);
         WriteOffRuleStaticInfo.setAllMMCommpara(vCommPara);
         WriteOffRuleStaticInfo.setAllMVLateCalPara(vLateCalPara);
+    }
+
+    @Override
+    public void CancelFeeloadParam() {
+        //地市销账规则
+        List<RuleEparchy> vRuleEparchy = ruleEparchyParamDao.getRuleEparchy();
+        logger.debug("地市销账规则参数 vRuleEparchy.size = " + vRuleEparchy.size());
+        //账本科目优先级
+        List<DepositPriorRule> vDepositPriorRule = depositParamDao.getDepositPriorRule();
+        logger.debug("账本科目优先规则参数 vDepositPriorRule.size = " + vDepositPriorRule.size());
+
+        WriteOffRuleStaticInfo.setAllVRuleeparchy(vRuleEparchy);
+        WriteOffRuleStaticInfo.setAllMMDepositPriorRule(vDepositPriorRule);
     }
 
     @Override
@@ -171,7 +184,7 @@ public class WriteOffRuleServiceImpl implements WriteOffRuleService {
         }
 
         //没有配参数或者配置为1:不剔除实时账单，如果配置为0:剔除时账单
-        CommPara tmpCommPara = writeOffRuleInfo.getCommpara(PubCommParaDef.ASM_CAN_PREREALBILL_CALC);
+        CommPara tmpCommPara = writeOffRuleInfo.getCommpara(ActingFeeCommparaDef.ASM_CAN_PREREALBILL_CALC);
         if (tmpCommPara == null || "1".equals(tmpCommPara.getParaCode1())) {
             writeOffRuleInfo.setCanPrerealbillCalc(true);
         } else {
@@ -179,7 +192,7 @@ public class WriteOffRuleServiceImpl implements WriteOffRuleService {
         }
 
         //设置销负账单的账本
-        CommPara commPara = writeOffRuleInfo.getCommpara(PubCommParaDef.ASM_NEGATIVEBILL_DEPOSIT);
+        CommPara commPara = writeOffRuleInfo.getCommpara(ActingFeeCommparaDef.ASM_NEGATIVEBILL_DEPOSIT);
         if (commPara == null) {
             writeOffRuleInfo.setNegativeBillDeposit(-1);
         } else {
@@ -188,7 +201,7 @@ public class WriteOffRuleServiceImpl implements WriteOffRuleService {
         }
 
         //坏账计算滞纳金
-        CommPara commPara1 = writeOffRuleInfo.getCommpara(PubCommParaDef.ASM_BADBILL_CALC_LATEFEE);
+        CommPara commPara1 = writeOffRuleInfo.getCommpara(ActingFeeCommparaDef.ASM_BADBILL_CALC_LATEFEE);
         if (commPara1 != null && "1".equals(commPara1.getParaCode1())) {
             writeOffRuleInfo.setBadBillCalcLateFee(true);
         } else {

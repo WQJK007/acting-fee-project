@@ -1,5 +1,6 @@
 package com.unicom.acting.fee.dao.impl;
 
+import com.unicom.skyark.component.jdbc.DbTypes;
 import com.unicom.skyark.component.jdbc.dao.impl.JdbcBaseDao;
 import com.unicom.skyark.component.util.StringUtil;
 import com.unicom.acting.fee.dao.CycleDao;
@@ -11,6 +12,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +20,7 @@ import java.util.Map;
 @Repository
 public class CycleDaoImpl extends JdbcBaseDao implements CycleDao {
     @Override
-    public List<Cycle> getCycle(String provinceCode) {
+    public List<Cycle> getCycle() {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT CYCLE_ID,DATE_FORMAT(CYC_START_TIME,'%Y-%m-%d %T') CYC_START_TIME,");
         sql.append("DATE_FORMAT(CYC_END_TIME,'%Y-%m-%d %T') CYC_END_TIME,");
@@ -33,11 +35,11 @@ public class CycleDaoImpl extends JdbcBaseDao implements CycleDao {
         sql.append("REMARK,UPDATE_PERSON,UPDATE_TIME,CHECK_PERSON,CHECK_TIME,");
         sql.append("DATE_FORMAT(CYC_HALF_TIME,'%Y-%m-%d %T') CYC_HALF_TIME,");
         sql.append("DATE_FORMAT(OPEN_ACCT_DATE,'%Y-%m-%d %T') OPEN_ACCT_DATE FROM TD_B_CYCLE");
-        return this.getJdbcTemplate(provinceCode).query(sql.toString(), new CycleRowMapper());
+        return this.getJdbcTemplate(DbTypes.ACT_PARA_RDS).query(sql.toString(), new CycleRowMapper());
     }
 
     @Override
-    public Cycle getCurCycle(String eparchyCode, String provinceCode) {
+    public Cycle getCurCycle(String eparchyCode) {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT PROVINCE_CODE,EPARCHY_CODE,CYCLE_ID,");
         sql.append("DATE_FORMAT(CYC_START_TIME,'%Y-%m-%d %T') CYC_START_TIME,");
@@ -48,11 +50,10 @@ public class CycleDaoImpl extends JdbcBaseDao implements CycleDao {
         sql.append("DATE_FORMAT(OPEN_ACCT_DATE,'%Y-%m-%d %T') OPEN_ACCT_DATE ");
         sql.append("FROM TD_B_CYCLE_EPARCHY WHERE EPARCHY_CODE=:VEPARCHY_CODE ");
         sql.append("AND CYCLE_ID = :VCYCLE_ID");
-
-        Map<String, String> param = new HashMap<>();
+        Map<String, String> param = new HashMap(2);
         param.put("VEPARCHY_CODE", eparchyCode);
         param.put("VCYCLE_ID", TimeUtil.getSysdate(TimeUtil.DATETIME_FORMAT_6));
-        List<Cycle> results = this.getJdbcTemplate(provinceCode).query(sql.toString(), param, new CycleEparchyRowMapper());
+        List<Cycle> results = this.getJdbcTemplate(DbTypes.ACT_PARA_RDS).query(sql.toString(), param, new CycleEparchyRowMapper());
         if (!CollectionUtils.isEmpty(results)) {
             return results.get(0);
         }
@@ -60,7 +61,7 @@ public class CycleDaoImpl extends JdbcBaseDao implements CycleDao {
     }
 
     @Override
-    public Cycle getMaxAcctCycle(String eparchyCode, String provinceCode) {
+    public Cycle getMaxAcctCycle(String eparchyCode) {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT PROVINCE_CODE,EPARCHY_CODE,CYCLE_ID,");
         sql.append("DATE_FORMAT(CYC_START_TIME,'%Y-%m-%d %T') CYC_START_TIME,");
@@ -72,9 +73,8 @@ public class CycleDaoImpl extends JdbcBaseDao implements CycleDao {
         sql.append("FROM TD_B_CYCLE_EPARCHY WHERE EPARCHY_CODE = :VEPARCHY_CODE ");
         sql.append("AND CYCLE_ID IN (SELECT MAX(CYCLE_ID) FROM TD_B_CYCLE_EPARCHY ");
         sql.append("WHERE USE_TAG ='1' AND EPARCHY_CODE = :VEPARCHY_CODE)");
-        Map<String, String> param = new HashMap<>();
-        param.put("VEPARCHY_CODE", eparchyCode);
-        List<Cycle> results = this.getJdbcTemplate(provinceCode).query(sql.toString(), param, new CycleEparchyRowMapper());
+        Map<String, String> param = Collections.singletonMap("VEPARCHY_CODE", eparchyCode);
+        List<Cycle> results = this.getJdbcTemplate(DbTypes.ACT_PARA_RDS).query(sql.toString(), param, new CycleEparchyRowMapper());
         if (!CollectionUtils.isEmpty(results)) {
             return results.get(0);
         }

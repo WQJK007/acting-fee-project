@@ -1,8 +1,13 @@
 package com.unicom.acting.fee.writeoff.service.impl;
 
 import com.unicom.acting.fee.dao.CycleDao;
+import com.unicom.acting.fee.domain.ActingFeeCommparaDef;
+import com.unicom.acting.fee.domain.CommPara;
 import com.unicom.acting.fee.domain.Cycle;
+import com.unicom.acting.fee.domain.WriteOffRuleInfo;
 import com.unicom.acting.fee.writeoff.service.CycleService;
+import com.unicom.skyark.component.jdbc.DbTypes;
+import com.unicom.skyark.component.util.StringUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -10,7 +15,7 @@ import org.springframework.stereotype.Service;
 /**
  * 账期类参数相关操作,通过JDBC方式访问数据库
  *
- * @author Administrators
+ * @author wangkh
  */
 @Service
 public class CycleServiceImpl implements CycleService {
@@ -19,25 +24,25 @@ public class CycleServiceImpl implements CycleService {
 
 
     @Override
-    public Cycle getCurCycle(String eparchyCode, String provinceCode) {
-        return cycleDao.getCurCycle(eparchyCode, provinceCode);
+    public Cycle getCurCycle(String eparchyCode) {
+        return cycleDao.getCurCycle(eparchyCode);
     }
 
     @Override
-    @Cacheable(value = "actingfeewriteoff_getcurcycle")
-    public Cycle getCacheCurCycle(String eparchyCode, String provinceCode) {
-        return cycleDao.getCurCycle(eparchyCode, provinceCode);
+    @Cacheable(value = "actingfee_getcurcycle")
+    public Cycle getCacheCurCycle(String eparchyCode) {
+        return cycleDao.getCurCycle(eparchyCode);
     }
 
     @Override
-    @Cacheable(value = "actingfeewriteoff_getmaxcycle")
-    public Cycle getCacheMaxAcctCycle(String eparchyCode, String provinceCode) {
-        return cycleDao.getMaxAcctCycle(eparchyCode, provinceCode);
+    @Cacheable(value = "actingfee_getmaxcycle")
+    public Cycle getCacheMaxAcctCycle(String eparchyCode) {
+        return cycleDao.getMaxAcctCycle(eparchyCode);
     }
 
     @Override
-    public Cycle getMaxAcctCycle(String eparchyCode, String provinceCode) {
-        return cycleDao.getMaxAcctCycle(eparchyCode, provinceCode);
+    public Cycle getMaxAcctCycle(String eparchyCode) {
+        return cycleDao.getMaxAcctCycle(eparchyCode);
     }
 
     @Override

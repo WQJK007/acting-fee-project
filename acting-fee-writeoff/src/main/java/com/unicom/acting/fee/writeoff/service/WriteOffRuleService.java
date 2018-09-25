@@ -12,10 +12,13 @@ import com.unicom.skyark.component.service.IBaseService;
 public interface WriteOffRuleService extends IBaseService {
     /**
      * 销账参数初始化
-     *
-     * @param provinceCode
      */
-    void loadWriteOffParam(String provinceCode);
+    void loadWriteOffParam();
+
+    /**
+     * 返销参数加载
+     */
+    void CancelFeeloadParam();
 
     /**
      * 根据地市，省份和网别获取对应的销账规则

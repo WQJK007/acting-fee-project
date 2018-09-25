@@ -23,27 +23,24 @@ public interface DatumService extends IBaseService {
      * 查询账户自定义缴费期
      *
      * @param acctId
-     * @param provinceCode
      * @return
      */
-    FeeAcctPaymentCycle getAcctPaymentCycle(String acctId, String provinceCode);
+    FeeAcctPaymentCycle getAcctPaymentCycle(String acctId);
 
     /**
      * 是否坏账账户
      *
      * @param acctId
-     * @param provinceCode
      * @return
      */
-    boolean isBadBillUser(String acctId, String provinceCode);
+    boolean isBadBillUser(String acctId);
 
     /**
      * 是否免滞纳金计算用户
      *
      * @param userId
      * @param acctId
-     * @param provinceCode
      * @return
      */
-    boolean isNoCalcLateFeeUser(String userId, String acctId, String provinceCode);
+    boolean isNoCalcLateFeeUser(String userId, String acctId);
 }

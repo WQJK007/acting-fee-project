@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.unicom.acting.common.domain.Account;
+import com.unicom.acting.common.domain.User;
 /**
  * 账务交易常用对象
  *
@@ -26,7 +28,8 @@ public class TradeCommInfo {
     /**
      * 付费账户
      */
-    private FeeAccount feeAccount;
+    private Account account;
+//    private FeeAccount feeAccount;
     /**
      * 账户账本
      */
@@ -44,15 +47,15 @@ public class TradeCommInfo {
      */
     private FeeAcctPaymentCycle feeAcctPaymentCycle;
     /**
-     * 负账单转换目的账本
+     * 负账单转换目的账本 移到calc组件中做判断   dealTag
      */
     private int negativeBillDeposit;
     /**
-     * 交费日志对象
+     * 交费日志对象  dealTag 移走
      */
     private FeePayLog feePayLog;
     /**
-     * 存取款日志对象
+     * 存取款日志对象 dealTag 移走
      */
     private List<FeeAccessLog> accesslogs;
     /**
@@ -65,58 +68,51 @@ public class TradeCommInfo {
     private FeeWriteSnapLog feeWriteSnapLog;
     /**
      * 用户结余信息
-     * 合帐用户，对于有用户级余额共享的情况同一个帐户有多个结余,或者分业务信控
+     * 合帐用户，对于有用户级余额共享的情况同一个帐户有多个结余
      */
     private Map<String, UserBalance> userBalance;
     /**
-     * 销账规则
+     *销账规则
      * 根据省份编码，地市编码，和交易账户网别获取具体的销账规则
      */
     private WriteOffRuleInfo writeOffRuleInfo;
     /**
-     * 选择帐目销帐
+     * 选择帐目销帐  dealTag 移走
      */
     private Set<Integer> chooseItem;
     /**
-     * 选择帐期销帐
+     * 选择帐期销帐  dealTag 移走
      */
     private Set<Integer> chooseCycleId;
     /**
-     * 选择用户销帐
+     * 选择用户销帐  dealTag 移走
      */
     private Set<String> chooseUserId;
     /**
-     * 帐本限定列表<账本类型, <可销账目项列表>>
+     * @see #depositItemLimitPtr 帐本限定列表<账本类型, <可销账目项列表>>
      */
     private Map<Integer, Set<Integer>> depositItemLimitPtr;
     /**
-     * 虚拟帐本关系 <虚拟帐本ID,<关联帐本实例ID,比例> >
+     * @see #virtualRel 虚拟帐本关系 <虚拟帐本ID,<关联帐本实例ID,比例> >
      */
     private Map<String, Map<String, Long>> virtualRel;
     /**
-     * 限额账本本次使用日志
+     * @see #currLimitFeeDepositLog 限额账本本次使用日志
      */
     private List<LimitFeeDepositLog> currLimitFeeDepositLog;
     /**
-     * 是否存在坏账缴费
+     * @see #hasBadBill 是否查询坏账欠费
      */
     private boolean hasBadBill;
-    /**
-     * 是否触发信控
-     */
-    private boolean isFireCreditCtrl;
     /**
      * 是否计算滞纳金
      */
     private boolean isCalcLateFee;
+
     /**
-     * 是否发送短信
+     *  是否触发信控
      */
-    private boolean isSendSms;
-    /**
-     * 增量出账账户
-     */
-    private boolean isAddAccount;
+    private boolean isFireCreditCtrl;
     /**
      * 滞纳金减免工单
      */
@@ -133,14 +129,7 @@ public class TradeCommInfo {
      * 是否抵扣期或补收期
      */
     private boolean isSpecialCycleStatus;
-    /**
-     * 是否存在抵扣期DMN工单
-     */
-    private boolean existsPayLogDmn;
-    /**
-     * 是否存在外围对账工单
-     */
-    private boolean existsTradeCheck;
+
     /**
      * 交易员工对象
      */
@@ -153,28 +142,10 @@ public class TradeCommInfo {
      * 库外信控
      */
     private boolean outerCredit;
-    /**
-     * 账务后台交易工单表对象
-     */
-    private FeePayLogDmn feePayLogDmn;
-    /**
-     * 缴费其他日志表对象
-     */
-    private PayOtherLog payOtherLog;
-    /**
-     * 省份代收费日志
-     */
-    private List<FeeCLPayLog> feeClPayLogs;
-    /**
-     * /短信入库列表 临时创建，运行稳定可以不用记录
-     */
-    private List<NoticeInfo> noticeInfoList;
-
 
     public TradeCommInfo() {
         feeWriteSnapLog = new FeeWriteSnapLog();
     }
-
 
     public User getMainUser() {
         return mainUser;
@@ -192,13 +163,21 @@ public class TradeCommInfo {
         this.payUsers = payUsers;
     }
 
-    public FeeAccount getFeeAccount() {
-        return feeAccount;
+    public Account getAccount() {
+        return account;
     }
 
-    public void setFeeAccount(FeeAccount feeAccount) {
-        this.feeAccount = feeAccount;
+    public void setAccount(Account account) {
+        this.account = account;
     }
+
+    //    public FeeAccount getFeeAccount() {
+//        return feeAccount;
+//    }
+//
+//    public void setFeeAccount(FeeAccount feeAccount) {
+//        this.feeAccount = feeAccount;
+//    }
 
     public List<FeeAccountDeposit> getFeeAccountDeposits() {
         return feeAccountDeposits;
@@ -352,14 +331,6 @@ public class TradeCommInfo {
         this.hasBadBill = hasBadBill;
     }
 
-    public boolean isFireCreditCtrl() {
-        return isFireCreditCtrl;
-    }
-
-    public void setFireCreditCtrl(boolean fireCreditCtrl) {
-        isFireCreditCtrl = fireCreditCtrl;
-    }
-
     public boolean isCalcLateFee() {
         return isCalcLateFee;
     }
@@ -368,20 +339,12 @@ public class TradeCommInfo {
         isCalcLateFee = calcLateFee;
     }
 
-    public boolean isSendSms() {
-        return isSendSms;
+    public boolean isFireCreditCtrl() {
+        return isFireCreditCtrl;
     }
 
-    public void setSendSms(boolean sendSms) {
-        isSendSms = sendSms;
-    }
-
-    public boolean isAddAccount() {
-        return isAddAccount;
-    }
-
-    public void setAddAccount(boolean addAccount) {
-        isAddAccount = addAccount;
+    public void setFireCreditCtrl(boolean fireCreditCtrl) {
+        isFireCreditCtrl = fireCreditCtrl;
     }
 
     public List<FeeDerateLateFeeLog> getFeeDerateLateFeeLogs() {
@@ -437,22 +400,6 @@ public class TradeCommInfo {
         isSpecialCycleStatus = specialCycleStatus;
     }
 
-    public boolean isExistsPayLogDmn() {
-        return existsPayLogDmn;
-    }
-
-    public void setExistsPayLogDmn(boolean existsPayLogDmn) {
-        this.existsPayLogDmn = existsPayLogDmn;
-    }
-
-    public boolean isExistsTradeCheck() {
-        return existsTradeCheck;
-    }
-
-    public void setExistsTradeCheck(boolean existsTradeCheck) {
-        this.existsTradeCheck = existsTradeCheck;
-    }
-
     public void setInvoiceFeeMap(Map<String, Long> invoiceFeeMap) {
         this.invoiceFeeMap = invoiceFeeMap;
     }
@@ -489,37 +436,6 @@ public class TradeCommInfo {
         this.outerCredit = outerCredit;
     }
 
-    public FeePayLogDmn getFeePayLogDmn() {
-        return feePayLogDmn;
-    }
-
-    public void setFeePayLogDmn(FeePayLogDmn feePayLogDmn) {
-        this.feePayLogDmn = feePayLogDmn;
-    }
-
-    public PayOtherLog getPayOtherLog() {
-        return payOtherLog;
-    }
-
-    public void setPayOtherLog(PayOtherLog payOtherLog) {
-        this.payOtherLog = payOtherLog;
-    }
-
-    public List<FeeCLPayLog> getFeeClPayLogs() {
-        return feeClPayLogs;
-    }
-
-    public void setFeeClPayLogs(List<FeeCLPayLog> feeClPayLogs) {
-        this.feeClPayLogs = feeClPayLogs;
-    }
-
-    public List<NoticeInfo> getNoticeInfoList() {
-        return noticeInfoList;
-    }
-
-    public void setNoticeInfoList(List<NoticeInfo> noticeInfoList) {
-        this.noticeInfoList = noticeInfoList;
-    }
 
     public boolean isHasBadBill() {
         return hasBadBill;

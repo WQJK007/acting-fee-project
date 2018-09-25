@@ -14,10 +14,9 @@ public interface CommParaFeeService extends IBaseService {
      * 获取时间戳
      *
      * @param tagCode
-     * @param provinceCode
      * @return
      */
-    String getParamTimeStamp(String tagCode, String provinceCode);
+    String getParamTimeStamp(String tagCode);
 
     /**
      * 根据编码获取参数对象
@@ -25,10 +24,9 @@ public interface CommParaFeeService extends IBaseService {
      * @param paraCode
      * @param provinceCode
      * @param eparchyCode
-     * @param provinceId
      * @return
      */
-    CommPara getCommpara(String paraCode, String provinceCode, String eparchyCode, String provinceId);
+    CommPara getCommpara(String paraCode, String provinceCode, String eparchyCode);
 
     /**
      * 提供LIKE方式查询账管公共参数表参数配置
@@ -36,26 +34,23 @@ public interface CommParaFeeService extends IBaseService {
      * @param paraCode
      * @param provinceCode
      * @param eparchyCode
-     * @param provinceId
      * @return
      */
-    CommPara getCommparaByLike(String paraCode, String provinceCode, String eparchyCode, String provinceId);
+    CommPara getCommparaByLike(String paraCode, String provinceCode, String eparchyCode);
 
     /**
      * 网别类型
      *
      * @param netTypeCode
-     * @param provinceCode
      * @return
      */
-    String getParentTypeCode(String netTypeCode, String provinceCode);
+    String getParentTypeCode(String netTypeCode);
 
     /**
      * 获取地市对应的省份编码
      *
      * @param eparchyCode
-     * @param provinceCode
      * @return
      */
-    String getProvCodeByEparchyCode(String eparchyCode, String provinceCode);
+    String getProvCodeByEparchyCode(String eparchyCode);
 }

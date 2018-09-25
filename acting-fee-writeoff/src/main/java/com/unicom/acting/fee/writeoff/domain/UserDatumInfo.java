@@ -1,8 +1,9 @@
 package com.unicom.acting.fee.writeoff.domain;
 
 
-import com.unicom.acting.fee.domain.FeeAccount;
-import com.unicom.acting.fee.domain.User;
+
+import com.unicom.acting.common.domain.Account;
+import com.unicom.acting.common.domain.User;
 
 import java.util.List;
 
@@ -14,7 +15,7 @@ import java.util.List;
  */
 public class UserDatumInfo {
     private User mainUser;  //输入用户信息
-    private FeeAccount feeAccount;  //付费账户信息
+    private Account account;  //付费账户信息
     private List<User> defaultPayUsers; //默认付费用户信息
     private boolean isBigAcct;  //大合帐用户
 
@@ -26,12 +27,12 @@ public class UserDatumInfo {
         this.mainUser = mainUser;
     }
 
-    public FeeAccount getFeeAccount() {
-        return feeAccount;
+    public Account getAccount() {
+        return account;
     }
 
-    public void setFeeAccount(FeeAccount account) {
-        this.feeAccount = account;
+    public void setAccount(Account account) {
+        this.account = account;
     }
 
     public List<User> getDefaultPayUsers() {
@@ -54,7 +55,7 @@ public class UserDatumInfo {
     public String toString() {
         return "UserDatumInfo{" +
                 "mainUser=" + mainUser +
-                ", feeAccount=" + feeAccount +
+                ", feeAccount=" + account +
                 ", defaultPayUsers=" + defaultPayUsers +
                 ", isBigAcct=" + isBigAcct +
                 '}';

@@ -13,8 +13,7 @@ public interface FeeAccountDao extends IBaseDao {
      * 账户自定义缴费期
      *
      * @param acctId
-     * @param provinceCode
      * @return
      */
-    FeeAcctPaymentCycle getAcctPaymentCycle(String acctId, String provinceCode);
+    FeeAcctPaymentCycle getAcctPaymentCycle(String acctId);
 }

@@ -2,13 +2,13 @@ package com.unicom.acting.fee.dao.impl;
 
 import com.unicom.acting.fee.domain.FeeDiscntDeposit;
 import com.unicom.acting.fee.domain.FeePayLogDmn;
+import com.unicom.skyark.component.jdbc.DbTypes;
 import com.unicom.skyark.component.util.TimeUtil;
 import com.unicom.skyark.component.jdbc.dao.impl.JdbcBaseDao;
 import com.unicom.skyark.component.util.StringUtil;
 import com.unicom.acting.fee.dao.FeePayLogDmnDao;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
-import org.springframework.util.CollectionUtils;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -19,7 +19,7 @@ import java.util.Map;
 @Repository
 public class FeePayLogDmnDaoImpl extends JdbcBaseDao implements FeePayLogDmnDao {
     @Override
-    public List<FeePayLogDmn> getPaylogDmnByAcctId(String acctId, String getMode, String dbType, String provinceCode) {
+    public List<FeePayLogDmn> getPaylogDmnByAcctId(String acctId, String getMode, String dbType, String routeValue) {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT EPARCHY_CODE,PROVINCE_CODE,TRADE_ID,TRADE_TYPE_CODE,BATCH_ID,");
         sql.append("PRIORITY,CHARGE_ID,ACCT_ID,USER_ID,SERIAL_NUMBER,WRITEOFF_MODE,");
@@ -37,27 +37,14 @@ public class FeePayLogDmnDaoImpl extends JdbcBaseDao implements FeePayLogDmnDao 
         sql.append("DATE_FORMAT(DEAL_TIME,'%Y-%m-%d %T') DEAL_TIME,");
         sql.append("RSRV_INFO1,LIMIT_MODE,PRINT_TAG FROM TF_B_PAYLOG_DMN ");
         sql.append("WHERE ACCT_ID=:VACCT_ID AND DEAL_TAG=:VDEAL_TAG");
-        Map<String, String> param = new HashMap(2);
+        Map param = new HashMap(2);
         param.put("VACCT_ID", acctId);
         param.put("VDEAL_TAG", getMode);
-        return this.getJdbcTemplate(dbType, provinceCode).query(sql.toString(), param, new PaylogDmnRowMapper());
+        return this.getJdbcTemplate(dbType, routeValue).query(sql.toString(), param, new PaylogDmnRowMapper());
     }
 
     @Override
-    public boolean ifExistOuterTradeId(String tradeId, String provinceCode) {
-        StringBuilder sql = new StringBuilder();
-        sql.append("SELECT 1 FROM TF_B_PAYLOG WHERE OUTER_TRADE_ID=:VOUTER_TRADE_ID ");
-        Map<String, String> param = new HashMap<>();
-        param.put("VOUTER_TRADE_ID", tradeId);
-        List<String> result = this.getJdbcTemplate(provinceCode).queryForList(sql.toString(), param, String.class);
-        if (!CollectionUtils.isEmpty(result)) {
-            return true;
-        }
-        return false;
-    }
-
-    @Override
-    public List<FeeDiscntDeposit> getUserDiscntDepositByUserId(String acctId, String userId, String provinceId) {
+    public List<FeeDiscntDeposit> getUserDiscntDepositByUserId(String acctId, String userId) {
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT ACCT_BALANCE_ID,LEFT_MONEY,LIMIT_MODE,SPLIT_METHOD,MONEY,");
         sql.append("LIMIT_MONEY,MONTHS FROM TF_B_DISCNT_DEPOSIT WHERE USER_ID = :VUSER_ID ");
@@ -68,11 +55,11 @@ public class FeePayLogDmnDaoImpl extends JdbcBaseDao implements FeePayLogDmnDao 
         sql.append("LIMIT_MONEY,MONTHS FROM TF_B_DISCNT_DEPOSIT WHERE USER_ID = :VUSER_ID ");
         sql.append("AND ACCT_ID = :VACCT_ID AND CANCEL_TAG = '0' ");
         sql.append("AND END_CYCLE_ID >= :VCYCLE_ID ");
-        Map<String, String> param = new HashMap<>();
+        Map param = new HashMap(3);
         param.put("VUSER_ID", userId);
         param.put("VACCT_ID", acctId);
         param.put("VCYCLE_ID", TimeUtil.getSysdate(TimeUtil.DATETIME_FORMAT_6));
-        return this.getJdbcTemplate(provinceId).query(sql.toString(), param, new RowMapper<FeeDiscntDeposit>() {
+        return this.getJdbcTemplate(DbTypes.ACTS_DRDS).query(sql.toString(), param, new RowMapper<FeeDiscntDeposit>() {
             @Override
             public FeeDiscntDeposit mapRow(ResultSet rs, int rowNum) throws SQLException {
                 FeeDiscntDeposit feeDiscntDeposit = new FeeDiscntDeposit();

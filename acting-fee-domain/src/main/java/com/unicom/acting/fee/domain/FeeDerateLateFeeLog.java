@@ -29,9 +29,20 @@ public class FeeDerateLateFeeLog {
     private long rsrvFee2;
     private String rsrvInfo1;
     private String rsrvInfo2;
-    private long sumLateFee;        //零时使用滞纳金总额－－减免到情况下使用
+    /**
+     * @see #sumLateFee
+     * 零时使用滞纳金总额－－减免到情况下使用
+     */
+    private long sumLateFee;
     private char useTag;
-    private char oldUseTag;         //老的使用标志
+    /**
+     * @see #oldUseTag 老的使用标志
+     */
+    private char oldUseTag;
+    /**
+     * @see #backUpUseTag 使用标识备份
+     */
+    private char backUpUseTag;
 
     public FeeDerateLateFeeLog() {
         cycleId = -1;
@@ -255,6 +266,14 @@ public class FeeDerateLateFeeLog {
         this.oldUseTag = oldUseTag;
     }
 
+    public char getBackUpUseTag() {
+        return backUpUseTag;
+    }
+
+    public void setBackUpUseTag(char backUpUseTag) {
+        this.backUpUseTag = backUpUseTag;
+    }
+
     @Override
     public String toString() {
         return "FeeDerateLateFeeLog{" +
@@ -284,6 +303,7 @@ public class FeeDerateLateFeeLog {
                 ", sumLateFee=" + sumLateFee +
                 ", useTag=" + useTag +
                 ", oldUseTag=" + oldUseTag +
+                ", backUpUseTag=" + backUpUseTag +
                 '}';
     }
 }

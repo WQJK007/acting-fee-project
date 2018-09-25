@@ -16,17 +16,15 @@ public interface FeeAccountDepositDao extends IBaseDao {
      * 根据账户标识查询账本
      *
      * @param acctId
-     * @param provinceCode
      * @return
      */
-    List<FeeAccountDeposit> getAcctDepositByAcctId(String acctId, String provinceCode);
+    List<FeeAccountDeposit> getAcctDepositByAcctId(String acctId);
 
     /**
      * 根据账户标识查询账本销账关系
      *
      * @param acctId
-     * @param provinceCode
      * @return
      */
-    List<FeeAcctBalanceRel> getAcctBalanceRelByAcctId(String acctId, String provinceCode);
+    List<FeeAcctBalanceRel> getAcctBalanceRelByAcctId(String acctId);
 }

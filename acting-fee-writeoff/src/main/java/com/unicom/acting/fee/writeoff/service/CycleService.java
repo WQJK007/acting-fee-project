@@ -13,37 +13,33 @@ public interface CycleService extends IBaseService {
      * 获取地市当前账期
      *
      * @param eparchyCode
-     * @param provinceCode
      * @return
      */
-    Cycle getCurCycle(String eparchyCode, String provinceCode);
+    Cycle getCurCycle(String eparchyCode);
 
     /**
      * 获取地市当前账期从缓存中读取
      *
      * @param eparchyCode
-     * @param provinceCode
      * @return
      */
-    Cycle getCacheCurCycle(String eparchyCode, String provinceCode);
+    Cycle getCacheCurCycle(String eparchyCode);
 
     /**
      * 获取地市当前最大开账账期从缓存中读取
      *
      * @param eparchyCode
-     * @param provinceCode
      * @return
      */
-    Cycle getCacheMaxAcctCycle(String eparchyCode, String provinceCode);
+    Cycle getCacheMaxAcctCycle(String eparchyCode);
 
     /**
      * 获取地市当前最大开账账期
      *
      * @param eparchyCode
-     * @param provinceCode
      * @return
      */
-    Cycle getMaxAcctCycle(String eparchyCode, String provinceCode);
+    Cycle getMaxAcctCycle(String eparchyCode);
 
     /**
      * 抵扣期
@@ -60,6 +56,4 @@ public interface CycleService extends IBaseService {
      * @return
      */
     boolean isPatchDrecvPeriod(Cycle curCycle);
-
-
 }

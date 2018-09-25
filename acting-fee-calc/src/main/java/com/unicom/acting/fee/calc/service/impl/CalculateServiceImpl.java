@@ -1,5 +1,7 @@
 package com.unicom.acting.fee.calc.service.impl;
 
+import com.unicom.acting.common.domain.Account;
+import com.unicom.acting.common.domain.User;
 import com.unicom.skyark.component.common.constants.SysTypes;
 import com.unicom.skyark.component.exception.SkyArkException;
 import com.unicom.skyark.component.util.StringUtil;
@@ -75,7 +77,7 @@ public class CalculateServiceImpl implements CalculateService {
         //结余计算
         genSimpleBalance(tradeCommInfo, true);
         //生成存取款日志表
-        genAccessLog(tradeCommInfo);
+        //genAccessLog(tradeCommInfo);
         //设置账单标识
         billCalcServiceImpl.setBillPayTag(tradeCommInfo.getFeeBills());
         //刨去新生成的滞纳金,生成实际的滞纳金，库外信控不走这步
@@ -121,14 +123,14 @@ public class CalculateServiceImpl implements CalculateService {
     private void calcLateFee(TradeCommInfo tradeCommInfo) {
         if (CollectionUtils.isEmpty(tradeCommInfo.getFeeBills())
                 || tradeCommInfo.getWriteOffRuleInfo() == null
-                || tradeCommInfo.getFeeAccount() == null) {
+                || tradeCommInfo.getAccount() == null) {
             return;
         }
 
         WriteOffRuleInfo writeOffRuleInfo = tradeCommInfo.getWriteOffRuleInfo();
         List<FeeBill> feeBills = tradeCommInfo.getFeeBills();
 
-        FeeAccount feeAccount = tradeCommInfo.getFeeAccount();
+        Account feeAccount = tradeCommInfo.getAccount();
         //坏帐算滞纳金标志
         boolean badBillCalc = writeOffRuleInfo.isBadBillCalcLateFee();
 
@@ -314,36 +316,36 @@ public class CalculateServiceImpl implements CalculateService {
     //账单销账计算
     private void pay(TradeCommInfo tradeCommInfo) {
         //账本集
-        List<FeeAccountDeposit> feeAccountDepositList = tradeCommInfo.getFeeAccountDeposits();
+        List<FeeAccountDeposit> feeFeeAccountDepositList = tradeCommInfo.getFeeAccountDeposits();
         //账单集
         List<FeeBill> feeBillList = tradeCommInfo.getFeeBills();
 
         //先使用负账本销账
-        for (FeeAccountDeposit feeAccountDeposit : feeAccountDepositList) {
+        for (FeeAccountDeposit feeFeeAccountDeposit : feeFeeAccountDepositList) {
             //被虚拟的账本不参与销帐
-            if ('2' == feeAccountDeposit.getVirtualTag()) {
+            if ('2' == feeFeeAccountDeposit.getVirtualTag()) {
                 continue;
             }
 
             //先销负帐本
-            if (depositCalcServiceImpl.getRemainMoney(feeAccountDeposit) < 0) {
+            if (depositCalcServiceImpl.getRemainMoney(feeFeeAccountDeposit) < 0) {
                 for (FeeBill pFeeBill : feeBillList) {
-                    strikeBalance(tradeCommInfo, feeAccountDeposit, pFeeBill);
+                    strikeBalance(tradeCommInfo, feeFeeAccountDeposit, pFeeBill);
                 }
             }
         }
 
-        logger.debug("deposits.size = " + feeAccountDepositList.size());
+        logger.debug("deposits.size = " + feeFeeAccountDepositList.size());
 
-        for (FeeAccountDeposit feeAccountDeposit : feeAccountDepositList) {
-            logger.info("acctId= " + feeAccountDeposit.getAcctId() + ",acctBalanceId=" + feeAccountDeposit.getAcctBalanceId());
+        for (FeeAccountDeposit feeFeeAccountDeposit : feeFeeAccountDepositList) {
+            logger.info("acctId= " + feeFeeAccountDeposit.getAcctId() + ",acctBalanceId=" + feeFeeAccountDeposit.getAcctBalanceId());
             //被虚拟的账本不参与销帐
-            if ('2' == feeAccountDeposit.getVirtualTag()) {
+            if ('2' == feeFeeAccountDeposit.getVirtualTag()) {
                 continue;
             }
 
             for (FeeBill pFeeBill : feeBillList) {
-                strikeBalance(tradeCommInfo, feeAccountDeposit, pFeeBill);
+                strikeBalance(tradeCommInfo, feeFeeAccountDeposit, pFeeBill);
             }
         }
 
@@ -371,10 +373,8 @@ public class CalculateServiceImpl implements CalculateService {
         //不可销往月帐的帐本,有特殊使用关系的返回(月结的时候没有开帐也符合条件)
         if (('0' == deposit.getIfCalcOwe() || '0' != deposit.getLimitMode())
                 && feeBill.getCycleId() <= writeOffRuleInfo.getMaxAcctCycle().getCycleId()
-                || tradeCommInfo.isAddAccount()
                 && ('0' == deposit.getIfCalcOwe() || '0' != deposit.getLimitMode())
-                && feeBill.getCycleId() <= TimeUtil.genCycle(
-                writeOffRuleInfo.getMaxAcctCycle().getCycleId(), -1)) {
+                && feeBill.getCycleId() <= TimeUtil.genCycle(writeOffRuleInfo.getMaxAcctCycle().getCycleId(), -1)) {
             return;
         }
 
@@ -506,12 +506,12 @@ public class CalculateServiceImpl implements CalculateService {
         }
         List<FeeWriteOffLog> feeWriteOffLogList = tradeCommInfo.getFeeWriteOffLogs();
 
-        FeeAccount feeAccount = tradeCommInfo.getFeeAccount();
-        List<FeeAccountDeposit> feeAccountDepositList = tradeCommInfo.getFeeAccountDeposits();
+        Account feeAccount = tradeCommInfo.getAccount();
+        List<FeeAccountDeposit> feeFeeAccountDepositList = tradeCommInfo.getFeeAccountDeposits();
         //虚拟帐本按比例销帐需要拆分
         if ('1' == deposit.getVirtualTag()) {
             //账本按比例销账实际分摊销账金额
-            Map<String, Long> depositWriteOffFee = genDepositWriteOffFee(feeAccountDepositList, tradeCommInfo.getVirtualRel(),
+            Map<String, Long> depositWriteOffFee = genDepositWriteOffFee(feeFeeAccountDepositList, tradeCommInfo.getVirtualRel(),
                     deposit.getAcctBalanceId(), (impFee + useRecvFee));
             //滞纳金累计销账金额
             long writeOffLateSum = 0;
@@ -525,7 +525,7 @@ public class CalculateServiceImpl implements CalculateService {
                 }
                 //更新账本销账金额信息
                 long tmpImpFee = 0;
-                FeeAccountDeposit refDeposit = depositCalcServiceImpl.getAcctDepositByAcctBalanceId(feeAccountDepositList, acctBalanceId);
+                FeeAccountDeposit refDeposit = depositCalcServiceImpl.getAcctDepositByAcctBalanceId(feeFeeAccountDepositList, acctBalanceId);
                 if ((refDeposit.getMoney() - refDeposit.getImpFee()) > rateFee) {
                     tmpImpFee = rateFee;
                     refDeposit.setImpFee(refDeposit.getImpFee() + rateFee);
@@ -611,7 +611,7 @@ public class CalculateServiceImpl implements CalculateService {
      * @param newLateFee   销账后剩余滞纳金
      * @return 销账日志对象
      */
-    private FeeWriteOffLog genWriteOffLog(FeeBill feeBill, FeeAccount feeAccount, FeeAccountDeposit deposit, long writeOffFee,
+    private FeeWriteOffLog genWriteOffLog(FeeBill feeBill, Account feeAccount, FeeAccountDeposit deposit, long writeOffFee,
                                           long impFee, long oldBalance, long newBalance, long oldLafateFee, long newLateFee) {
         FeeWriteOffLog feeWriteOffLog = new FeeWriteOffLog();
         if (StringUtil.isEmptyCheckNullStr(feeBill.getProvinceCode())) {
@@ -678,13 +678,13 @@ public class CalculateServiceImpl implements CalculateService {
     /**
      * 账本按比例销账做销账金额分摊
      *
-     * @param feeAccountDepositList      账户账本列表
+     * @param feeFeeAccountDepositList      账户账本列表
      * @param virtualRelMap        账本比例关系
      * @param virtualAcctBalanceId 虚拟账本实例标识
      * @param writeOffFee          虚拟账本总销账金额
      * @return 账本实际销账金额
      */
-    private Map<String, Long> genDepositWriteOffFee(List<FeeAccountDeposit> feeAccountDepositList, Map<String, Map<String, Long>> virtualRelMap,
+    private Map<String, Long> genDepositWriteOffFee(List<FeeAccountDeposit> feeFeeAccountDepositList, Map<String, Map<String, Long>> virtualRelMap,
                                                     String virtualAcctBalanceId, long writeOffFee) {
         //账本实际分摊金额
         Map<String, Long> depositWriteOffFee = new TreeMap<>();
@@ -697,7 +697,7 @@ public class CalculateServiceImpl implements CalculateService {
         long factRateFee = 0;
         //acctBalanceId下的小先使用
         for (String acctBalanceId : acctDepositRateMap.keySet()) {
-            FeeAccountDeposit refDeposit = depositCalcServiceImpl.getAcctDepositByAcctBalanceId(feeAccountDepositList, acctBalanceId);
+            FeeAccountDeposit refDeposit = depositCalcServiceImpl.getAcctDepositByAcctBalanceId(feeFeeAccountDepositList, acctBalanceId);
             //账本应该分摊金额
             long tmpUseFee = (long) (writeOffFee * ((double) acctDepositRateMap.get(acctBalanceId) / 100));
             //账本实际销账金额
@@ -716,7 +716,7 @@ public class CalculateServiceImpl implements CalculateService {
         if (oddment != 0) {
             //未分摊金额用账本可用预存款再次分摊
             for (String acctBalanceId : depositWriteOffFee.keySet()) {
-                FeeAccountDeposit refDeposit = depositCalcServiceImpl.getAcctDepositByAcctBalanceId(feeAccountDepositList, acctBalanceId);
+                FeeAccountDeposit refDeposit = depositCalcServiceImpl.getAcctDepositByAcctBalanceId(feeFeeAccountDepositList, acctBalanceId);
                 //账本可用金额
                 long tmpLeft = depositCalcServiceImpl.getRemainMoney(refDeposit);
                 long usedMoney = depositWriteOffFee.get(acctBalanceId) + oddment;
@@ -752,7 +752,7 @@ public class CalculateServiceImpl implements CalculateService {
         long snapAllBalance = feeWriteSnapLog.getAllBalance();
         //快照日志信息初始化
         feeWriteSnapLog.init();
-        FeeAccount feeAccount = tradeCommInfo.getFeeAccount();
+        Account feeAccount = tradeCommInfo.getAccount();
         User mainUser = tradeCommInfo.getMainUser();
         List<FeeBill> feeBillList = tradeCommInfo.getFeeBills();
         List<FeeAccountDeposit> depositList = tradeCommInfo.getFeeAccountDeposits();
@@ -1091,13 +1091,13 @@ public class CalculateServiceImpl implements CalculateService {
             }
         }
 
-        for (FeeAccountDeposit feeAccountDeposit : depositList) {
+        for (FeeAccountDeposit feeFeeAccountDeposit : depositList) {
             //保存原来的往月欠费给库外信控使用
-            feeAccountDeposit.setOweFee(feeWriteSnapLog.getAllNewBOweFee());
+            feeFeeAccountDeposit.setOweFee(feeWriteSnapLog.getAllNewBOweFee());
             //用户结余大于0，私有账本往月欠费为0
-            if ('1' == feeAccountDeposit.getPrivateTag() && userBalance.containsKey(feeAccountDeposit.getUserId())
-                    && userBalance.get(feeAccountDeposit.getUserId()).getBalance() >= 0) {
-                feeAccountDeposit.setOweFee(0);
+            if ('1' == feeFeeAccountDeposit.getPrivateTag() && userBalance.containsKey(feeFeeAccountDeposit.getUserId())
+                    && userBalance.get(feeFeeAccountDeposit.getUserId()).getBalance() >= 0) {
+                feeFeeAccountDeposit.setOweFee(0);
             }
         }
 
@@ -1141,12 +1141,12 @@ public class CalculateServiceImpl implements CalculateService {
 
         //根据账本生成用户结余对象
         if (!CollectionUtils.isEmpty(depositList)) {
-            for (FeeAccountDeposit feeAccountDeposit : depositList) {
-                if ('1' == feeAccountDeposit.getPrivateTag()
-                        && feeAccountDeposit.getUserId().length() > 2
-                        && !userBalance.containsKey(feeAccountDeposit.getUserId())) {
+            for (FeeAccountDeposit feeFeeAccountDeposit : depositList) {
+                if ('1' == feeFeeAccountDeposit.getPrivateTag()
+                        && feeFeeAccountDeposit.getUserId().length() > 2
+                        && !userBalance.containsKey(feeFeeAccountDeposit.getUserId())) {
                     UserBalance tmp = new UserBalance();
-                    userBalance.put(feeAccountDeposit.getUserId(), tmp);
+                    userBalance.put(feeFeeAccountDeposit.getUserId(), tmp);
                 }
             }
         }
@@ -1338,7 +1338,7 @@ public class CalculateServiceImpl implements CalculateService {
 
     //生成存取款日志
     private void genAccessLog(TradeCommInfo tradeCommInfo) {
-        FeeAccount feeAccount = tradeCommInfo.getFeeAccount();
+        Account feeAccount = tradeCommInfo.getAccount();
         List<FeeAccountDeposit> depositList = tradeCommInfo.getFeeAccountDeposits();
         List<FeeAccessLog> feeAccessLogList = new ArrayList<>();
         Map<String, Long> invoiceFee = tradeCommInfo.getInvoiceFeeMap();

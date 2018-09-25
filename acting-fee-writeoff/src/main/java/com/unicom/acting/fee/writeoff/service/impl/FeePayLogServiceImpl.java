@@ -25,8 +25,8 @@ public class FeePayLogServiceImpl implements FeePayLogService {
     }
 
     @Override
-    public List<FeeDiscntDeposit> getUserDiscntDepositByUserId(String acctId, String userId, String provinceId) {
-        return feePayLogDmnDao.getUserDiscntDepositByUserId(acctId, userId, provinceId);
+    public List<FeeDiscntDeposit> getUserDiscntDepositByUserId(String acctId, String userId) {
+        return feePayLogDmnDao.getUserDiscntDepositByUserId(acctId, userId);
     }
 
 }

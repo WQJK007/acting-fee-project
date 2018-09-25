@@ -28,8 +28,7 @@ public interface FeePayLogService extends IBaseService {
      *
      * @param acctId
      * @param userId
-     * @param provinceId
      * @return
      */
-    List<FeeDiscntDeposit> getUserDiscntDepositByUserId(String acctId, String userId, String provinceId);
+    List<FeeDiscntDeposit> getUserDiscntDepositByUserId(String acctId, String userId);
 }

@@ -17,7 +17,7 @@ public class FeeDerateLateFeeLogServiceImpl implements FeeDerateLateFeeLogServic
     private FeeDerateLateFeeLogDao feeDerateLateFeeLogDao;
 
     @Override
-    public List<FeeDerateLateFeeLog> getDerateLateFeeLog(String acctId, int startCycleId, int endCycleId, String provinceCode) {
-        return feeDerateLateFeeLogDao.getDerateLateFeeLog(acctId, startCycleId, endCycleId, provinceCode);
+    public List<FeeDerateLateFeeLog> getDerateLateFeeLog(String acctId, int startCycleId, int endCycleId) {
+        return feeDerateLateFeeLogDao.getDerateLateFeeLog(acctId, startCycleId, endCycleId);
     }
 }

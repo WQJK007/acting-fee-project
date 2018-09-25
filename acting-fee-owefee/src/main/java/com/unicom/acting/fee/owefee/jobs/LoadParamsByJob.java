@@ -1,7 +1,6 @@
 package com.unicom.acting.fee.owefee.jobs;
 
-import com.unicom.acting.fee.domain.ActingFeePubDef;
-import com.unicom.acting.fee.domain.PubCommParaDef;
+import com.unicom.acting.fee.domain.ActingFeeCommparaDef;
 import com.unicom.acting.fee.writeoff.service.CommParaFeeService;
 import com.unicom.acting.fee.writeoff.service.WriteOffRuleService;
 import com.unicom.skyark.component.jdbc.DbTypes;
@@ -38,12 +37,12 @@ public class LoadParamsByJob {
     private void initParam() {
         //获取系统当前时间戳
         String currTimeStamp = commParaService.getParamTimeStamp(
-                PubCommParaDef.ASM_PARAM_TIMESTAMP, DbTypes.ACT_PARA_RDS);
+                ActingFeeCommparaDef.ASM_PARAM_TIMESTAMP);
         logger.info("timeStamp = " + timeStamp + ",currTimeStamp = " + currTimeStamp);
         if ("".equals(timeStamp) || !currTimeStamp.equals(timeStamp)) {
             long startTime = System.currentTimeMillis();   //获取开始时间
             //加载缴费销账相关参数
-            writeOffRuleService.loadWriteOffParam(DbTypes.ACT_PARA_RDS);
+            writeOffRuleService.loadWriteOffParam();
 
             if ("".equals(timeStamp) && "".equals(currTimeStamp)) {
                 timeStamp = "1900-01-01 01:01:01";

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>acting-fee-parent</artifactId>
+        <groupId>com.unicom.acting.fee</groupId>
+        <version>${revision}</version>
+        <relativePath>../acting-fee-parent</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>acting-fee-batch</artifactId>
+    <name>acting-fee-batch</name>
+    <description>账务中心后台批处理欠费查询公共jar</description>
+
+
+    <dependencies>
+        <dependency>
+            <groupId>com.unicom.acting.springbatch</groupId>
+            <artifactId>acting-batch-userdatum</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.unicom.acting.springbatch</groupId>
+            <artifactId>acting-batch-common</artifactId>
+            <version>${acting-common.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.unicom.acting.fee</groupId>
+            <artifactId>acting-fee-domain</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.unicom.acting.fee</groupId>
+            <artifactId>acting-fee-writeoff</artifactId>
+        </dependency>
+    </dependencies>
+
+
+</project>

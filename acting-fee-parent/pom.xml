@@ -6,7 +6,7 @@
         <artifactId>acting-fee-dependencies</artifactId>
         <groupId>com.unicom.acting.fee</groupId>
         <version>${revision}</version>
-        <relativePath>../acting-fee-dependencies</relativePath>
+        <relativePath>../acting-fee-dependencies/pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -248,7 +248,6 @@
                 <inherited>true</inherited>
                 <executions>
                     <execution>
-                        <!-- Tidy up all POMs before they are published -->
                         <id>flatten</id>
                         <phase>process-resources</phase>
                         <goals>
@@ -268,7 +267,6 @@
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -295,9 +293,6 @@
                                 <requireMavenVersion>
                                     <version>[3.5.0,)</version>
                                 </requireMavenVersion>
-                                <!--<requireProperty>
-                                    <property>main.basedir</property>
-                                </requireProperty>-->
                                 <requireProperty>
                                     <property>project.name</property>
                                 </requireProperty>
@@ -325,25 +320,22 @@
                         </manifest>
                         <manifestEntries>
                             <Implementation-Title>${project.name}</Implementation-Title>
-                            <Automatic-Module-Name>${modulename}</Automatic-Module-Name>
                             <Implementation-Version>${project.version}</Implementation-Version>
                             <Built-By>Act</Built-By>
                         </manifestEntries>
                     </archive>
                 </configuration>
             </plugin>
-            <!--<plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar-no-fork</goal>
-                        </goals>
+                        <id>boot-repackage</id>
+                        <phase>none</phase>
                     </execution>
                 </executions>
-            </plugin>-->
+            </plugin>
         </plugins>
         <resources>
             <resource>
@@ -352,5 +344,19 @@
             </resource>
         </resources>
     </build>
+
+    <repositories>
+        <repository>
+            <id>nexus</id>
+            <name>nexus</name>
+            <url>http://10.124.142.81/nexus/content/groups/public/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
 </project>
